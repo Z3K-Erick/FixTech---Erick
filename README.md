@@ -1,6 +1,6 @@
 # FixTech - Erick
 
-Aplicación de guías de reparación de tecnología desarrollada con **Kotlin**, integrando un frontend móvil nativo con **Android Jetpack Compose** (arquitectura MVVM) y un backend RESTful construido con **Spring Boot** (Java 21 + Gradle Kotlin DSL).
+Aplicación de guías para dar mantenimiento a laptops y PCs desarrollada con **Kotlin**, integrando un frontend móvil nativo con **Android Jetpack Compose** (arquitectura MVVM) y un backend RESTful construido con **Spring Boot** (Java 21 + Gradle Kotlin DSL).
 
 ## Estructura del Proyecto
 
