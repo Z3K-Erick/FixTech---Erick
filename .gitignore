@@ -1,0 +1,34 @@
+# Gradle & Build
+.gradle/
+**/build/
+!src/**/build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+.gradletasknamecache
+
+# Android Studio & IntelliJ IDEA
+*.iml
+.idea/
+.navigation/
+captures/
+output.json
+local.properties
+*.hprof
+*.keystore
+*.jks
+
+# Kotlin
+.kotlin/
+
+# OS & System files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs & Temp files
+*.log
+*.tmp
+*.bak
+*.swp
+*~
