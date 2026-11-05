@@ -18,4 +18,16 @@ class HomeViewModel : ViewModel() {
     fun onTabSelected(index: Int) {
         _uiState.update { it.copy(selectedTab = index) }
     }
+
+    fun onTechSearchQueryChanged(query: String) {
+        _uiState.update { it.copy(techSearchQuery = query) }
+    }
+
+    fun onTechTabSelected(index: Int) {
+        _uiState.update { it.copy(techSelectedTab = index) }
+    }
+
+    fun onTechFilterSelected(filter: String) {
+        _uiState.update { it.copy(techSelectedFilter = filter) }
+    }
 }

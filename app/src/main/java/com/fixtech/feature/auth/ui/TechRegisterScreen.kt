@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fixtech.core.components.FixTechLogo
 import com.fixtech.core.components.FixTechLogoVariant
 import com.fixtech.core.theme.BackgroundDark
+import com.fixtech.core.theme.ErrorRed
 import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
@@ -56,6 +57,22 @@ fun TechRegisterScreen(
     authViewModel: AuthViewModel = viewModel()
 ) {
     val uiState by authViewModel.uiState.collectAsState()
+
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = SurfaceDark,
+        unfocusedContainerColor = SurfaceDark,
+        errorContainerColor = SurfaceDark,
+        focusedTextColor = TextPrimary,
+        unfocusedTextColor = TextPrimary,
+        errorTextColor = TextPrimary,
+        focusedLabelColor = PrimaryBlue,
+        unfocusedLabelColor = TextSecondary,
+        errorLabelColor = ErrorRed,
+        focusedBorderColor = PrimaryBlue,
+        unfocusedBorderColor = SurfaceDark,
+        errorBorderColor = ErrorRed,
+        errorCursorColor = ErrorRed
+    )
 
     Scaffold(
         containerColor = BackgroundDark
@@ -105,19 +122,11 @@ fun TechRegisterScreen(
                 label = { Text("Nombre completo") },
                 placeholder = { Text("Ej. Ing. Roberto Gómez", color = TextSecondary) },
                 singleLine = true,
+                isError = uiState.isTechFullNameError,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = SurfaceDark,
-                    unfocusedContainerColor = SurfaceDark,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                    focusedLabelColor = PrimaryBlue,
-                    unfocusedLabelColor = TextSecondary,
-                    focusedBorderColor = PrimaryBlue,
-                    unfocusedBorderColor = SurfaceDark
-                )
+                colors = textFieldColors
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -129,19 +138,11 @@ fun TechRegisterScreen(
                 label = { Text("Correo electrónico") },
                 placeholder = { Text("tecnico@tallerfixtech.com", color = TextSecondary) },
                 singleLine = true,
+                isError = uiState.isTechRegisterEmailError,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = SurfaceDark,
-                    unfocusedContainerColor = SurfaceDark,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                    focusedLabelColor = PrimaryBlue,
-                    unfocusedLabelColor = TextSecondary,
-                    focusedBorderColor = PrimaryBlue,
-                    unfocusedBorderColor = SurfaceDark
-                )
+                colors = textFieldColors
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -157,19 +158,11 @@ fun TechRegisterScreen(
                     label = { Text("Código de verificación de taller") },
                     placeholder = { Text("Ej. FIX-8821", color = TextSecondary) },
                     singleLine = true,
+                    isError = uiState.isWorkshopCodeError,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(20.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = SurfaceDark,
-                        unfocusedContainerColor = SurfaceDark,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedLabelColor = PrimaryBlue,
-                        unfocusedLabelColor = TextSecondary,
-                        focusedBorderColor = PrimaryBlue,
-                        unfocusedBorderColor = SurfaceDark
-                    )
+                    colors = textFieldColors
                 )
 
                 Spacer(modifier = Modifier.width(10.dp))
@@ -202,27 +195,23 @@ fun TechRegisterScreen(
                 label = { Text("Contraseña") },
                 placeholder = { Text("••••••••", color = TextSecondary) },
                 singleLine = true,
+                isError = uiState.isTechRegisterPasswordError,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = SurfaceDark,
-                    unfocusedContainerColor = SurfaceDark,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                    focusedLabelColor = PrimaryBlue,
-                    unfocusedLabelColor = TextSecondary,
-                    focusedBorderColor = PrimaryBlue,
-                    unfocusedBorderColor = SurfaceDark
-                )
+                colors = textFieldColors
             )
 
             Spacer(modifier = Modifier.height(28.dp))
 
             // Botón Registrarse
             Button(
-                onClick = onRegisterSuccess,
+                onClick = {
+                    if (authViewModel.validateTechRegister()) {
+                        onRegisterSuccess()
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),

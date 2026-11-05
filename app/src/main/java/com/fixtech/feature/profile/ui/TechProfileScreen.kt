@@ -50,6 +50,7 @@ import com.fixtech.core.theme.SuccessGreen
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
 import com.fixtech.core.theme.TextSecondary
+import com.fixtech.feature.profile.viewmodel.ProfileUiState
 import com.fixtech.feature.profile.viewmodel.ProfileViewModel
 
 @Composable
@@ -119,285 +120,306 @@ fun TechProfileScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Avatar con inicial, nombre estructural, subtítulo "Rol" y un badge redondeado "Técnico Especialista"
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(PrimaryBlue, shape = CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = uiState.techInitial,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
+            TechProfileContent(
+                uiState = uiState,
+                onToggleNotifications = profileViewModel::toggleTechNotifications,
+                onUploadCertificate = profileViewModel::uploadCertificate,
+                onLogout = onLogout
+            )
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(14.dp))
-
+@Composable
+fun TechProfileContent(
+    uiState: ProfileUiState,
+    onToggleNotifications: (Boolean) -> Unit,
+    onUploadCertificate: () -> Unit,
+    onLogout: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Avatar con inicial, nombre estructural, subtítulo "Rol" y un badge redondeado "Técnico Especialista"
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .background(PrimaryBlue, shape = CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
-                text = uiState.techName,
-                fontSize = 20.sp,
+                text = uiState.techInitial,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = Color.White
             )
+        }
 
-            Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
+        Text(
+            text = uiState.techName,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = uiState.techRole,
+            fontSize = 13.sp,
+            color = TextSecondary
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = PrimaryBlue.copy(alpha = 0.16f)
+        ) {
             Text(
-                text = uiState.techRole,
-                fontSize = 13.sp,
-                color = TextSecondary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = PrimaryBlue.copy(alpha = 0.16f)
-            ) {
-                Text(
-                    text = uiState.techBadge,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PrimaryBlue,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Row con 3 tarjetas contadoras: "Mis Guías" (azul), "En curso" (verde), "Aprobadas" (azul)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Tarjeta 1: Mis Guías (azul)
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceDark)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "${uiState.techMyGuidesCount}",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryBlue
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Mis Guías",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = PrimaryBlue
-                        )
-                    }
-                }
-
-                // Tarjeta 2: En curso (verde)
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceDark)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "${uiState.techInProgressCount}",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = SuccessGreen
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "En curso",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = SuccessGreen
-                        )
-                    }
-                }
-
-                // Tarjeta 3: Aprobadas (azul)
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceDark)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "${uiState.techApprovedCount}",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryBlue
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Aprobadas",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = PrimaryBlue
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(26.dp))
-
-            // Sección PREFERENCIAS
-            Text(
-                text = "PREFERENCIAS",
+                text = uiState.techBadge,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextSecondary,
-                letterSpacing = 1.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
+                fontWeight = FontWeight.SemiBold,
+                color = PrimaryBlue,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
             )
+        }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Row con 3 tarjetas contadoras: "Mis Guías" (azul), "En curso" (verde), "Aprobadas" (azul)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Tarjeta 1: Mis Guías (azul)
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = SurfaceDark)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(vertical = 14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Notificaciones",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Alertas sobre el estado de tus reparaciones",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                    }
-                    Switch(
-                        checked = uiState.techNotificationsEnabled,
-                        onCheckedChange = profileViewModel::toggleTechNotifications,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = PrimaryBlue,
-                            uncheckedThumbColor = TextSecondary,
-                            uncheckedTrackColor = BackgroundDark
-                        )
+                    Text(
+                        text = "${uiState.techMyGuidesCount}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlue
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Mis Guías",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = PrimaryBlue
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Sección CERTIFICACIÓN
-            Text(
-                text = "CERTIFICACIÓN",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextSecondary,
-                letterSpacing = 1.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
-            )
-
+            // Tarjeta 2: En curso (verde)
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = SurfaceDark)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(vertical = 14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Certificado o comprobante",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Sube un documento que valide tus conocimientos técnicos",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Button(
-                        onClick = { profileViewModel.uploadCertificate() },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryBlue,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text(
-                            text = "Subir archivo",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                    Text(
+                        text = "${uiState.techInProgressCount}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SuccessGreen
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "En curso",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = SuccessGreen
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            // Tarjeta 3: Aprobadas (azul)
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "${uiState.techApprovedCount}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlue
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Aprobadas",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = PrimaryBlue
+                    )
+                }
+            }
+        }
 
-            // Botón "Cerrar Sesión" en rojo con borde oscuro
-            OutlinedButton(
-                onClick = onLogout,
+        Spacer(modifier = Modifier.height(26.dp))
+
+        // Sección PREFERENCIAS
+        Text(
+            text = "PREFERENCIAS",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextSecondary,
+            letterSpacing = 1.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+        ) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, SurfaceDark),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = ErrorRed
-                )
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                    contentDescription = "Cerrar Sesión",
-                    tint = ErrorRed,
-                    modifier = Modifier.size(20.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Notificaciones",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Alertas sobre el estado de tus reparaciones",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+                }
+                Switch(
+                    checked = uiState.techNotificationsEnabled,
+                    onCheckedChange = onToggleNotifications,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = PrimaryBlue,
+                        uncheckedThumbColor = TextSecondary,
+                        uncheckedTrackColor = BackgroundDark
+                    )
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Cerrar Sesión",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ErrorRed
-                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Botón delineado rojo "Cerrar Sesión"
+        OutlinedButton(
+            onClick = onLogout,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.5f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = ErrorRed
+            )
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                contentDescription = "Cerrar Sesión",
+                tint = ErrorRed,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Cerrar Sesión",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = ErrorRed
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Sección CERTIFICACIÓN
+        Text(
+            text = "CERTIFICACIÓN",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextSecondary,
+            letterSpacing = 1.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Certificado o comprobante",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Sube un documento que valide tus conocimientos técnicos",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Button(
+                    onClick = onUploadCertificate,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryBlue,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "Subir archivo",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
