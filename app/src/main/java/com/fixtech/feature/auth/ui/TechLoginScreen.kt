@@ -156,7 +156,6 @@ fun TechLoginScreen(
                 onClick = {
                     if (authViewModel.validateTechLogin()) {
                         onNavigateToTechHome()
-                        onNavigateToTechProfile()
                     }
                 },
                 modifier = Modifier

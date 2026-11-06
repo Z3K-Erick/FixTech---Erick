@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -70,10 +71,11 @@ fun TechProfileScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = 20.dp)
+                .padding(top = 16.dp, bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header "FixTech Admin" con ícono de salir arriba a la derecha
+            // Header "FixTech Admin" con flecha de regresar arriba
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -82,6 +84,14 @@ fun TechProfileScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Regresar",
+                            tint = TextPrimary
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "FixTech ",
                         fontSize = 24.sp,
@@ -93,14 +103,6 @@ fun TechProfileScreen(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryBlue
-                    )
-                }
-
-                IconButton(onClick = onLogout) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                        contentDescription = "Cerrar Sesión",
-                        tint = TextPrimary
                     )
                 }
             }
@@ -139,7 +141,9 @@ fun TechProfileContent(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Avatar con inicial, nombre estructural, subtítulo "Rol" y un badge redondeado "Técnico Especialista"
@@ -334,38 +338,9 @@ fun TechProfileContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Botón delineado rojo "Cerrar Sesión"
-        OutlinedButton(
-            onClick = onLogout,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.5f)),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = ErrorRed
-            )
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                contentDescription = "Cerrar Sesión",
-                tint = ErrorRed,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Cerrar Sesión",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = ErrorRed
-            )
-        }
-
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Sección CERTIFICACIÓN
+        // Sección CERTIFICACIÓN (antes del botón de cerrar sesión)
         Text(
             text = "CERTIFICACIÓN",
             fontSize = 12.sp,
@@ -421,6 +396,35 @@ fun TechProfileContent(
                     )
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Botón delineado rojo "Cerrar Sesión" al FINAL ABSOLUTO de la pantalla
+        OutlinedButton(
+            onClick = onLogout,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.5f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = ErrorRed
+            )
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                contentDescription = "Cerrar Sesión",
+                tint = ErrorRed,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Cerrar Sesión",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = ErrorRed
+            )
         }
     }
 }

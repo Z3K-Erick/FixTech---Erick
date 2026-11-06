@@ -32,15 +32,15 @@ class AuthViewModel : ViewModel() {
 
     fun validateUserLogin(): Boolean {
         val current = _uiState.value
-        val emailEmpty = current.email.trim().isEmpty()
-        val passwordEmpty = current.password.trim().isEmpty()
+        val emailValid = current.email.isNotBlank()
+        val passwordValid = current.password.isNotBlank()
         _uiState.update {
             it.copy(
-                isEmailError = emailEmpty,
-                isPasswordError = passwordEmpty
+                isEmailError = !emailValid,
+                isPasswordError = !passwordValid
             )
         }
-        return !emailEmpty && !passwordEmpty
+        return emailValid && passwordValid
     }
 
     // User Register
@@ -73,17 +73,17 @@ class AuthViewModel : ViewModel() {
 
     fun validateUserRegister(): Boolean {
         val current = _uiState.value
-        val nameEmpty = current.registerFullName.trim().isEmpty()
-        val emailEmpty = current.registerEmail.trim().isEmpty()
-        val passwordEmpty = current.registerPassword.trim().isEmpty()
+        val nameValid = current.registerFullName.isNotBlank()
+        val emailValid = current.registerEmail.isNotBlank()
+        val passwordValid = current.registerPassword.isNotBlank()
         _uiState.update {
             it.copy(
-                isRegisterFullNameError = nameEmpty,
-                isRegisterEmailError = emailEmpty,
-                isRegisterPasswordError = passwordEmpty
+                isRegisterFullNameError = !nameValid,
+                isRegisterEmailError = !emailValid,
+                isRegisterPasswordError = !passwordValid
             )
         }
-        return !nameEmpty && !emailEmpty && !passwordEmpty
+        return nameValid && emailValid && passwordValid
     }
 
     // Tech Login
@@ -107,15 +107,15 @@ class AuthViewModel : ViewModel() {
 
     fun validateTechLogin(): Boolean {
         val current = _uiState.value
-        val emailEmpty = current.techEmail.trim().isEmpty()
-        val passwordEmpty = current.techPassword.trim().isEmpty()
+        val emailValid = current.techEmail.isNotBlank()
+        val passwordValid = current.techPassword.isNotBlank()
         _uiState.update {
             it.copy(
-                isTechEmailError = emailEmpty,
-                isTechPasswordError = passwordEmpty
+                isTechEmailError = !emailValid,
+                isTechPasswordError = !passwordValid
             )
         }
-        return !emailEmpty && !passwordEmpty
+        return emailValid && passwordValid
     }
 
     // Tech Register
@@ -157,19 +157,19 @@ class AuthViewModel : ViewModel() {
 
     fun validateTechRegister(): Boolean {
         val current = _uiState.value
-        val nameEmpty = current.techFullName.trim().isEmpty()
-        val emailEmpty = current.techRegisterEmail.trim().isEmpty()
-        val codeEmpty = current.workshopCode.trim().isEmpty()
-        val passwordEmpty = current.techRegisterPassword.trim().isEmpty()
+        val nameValid = current.techFullName.isNotBlank()
+        val emailValid = current.techRegisterEmail.isNotBlank()
+        val codeValid = current.workshopCode.isNotBlank()
+        val passwordValid = current.techRegisterPassword.isNotBlank()
         _uiState.update {
             it.copy(
-                isTechFullNameError = nameEmpty,
-                isTechRegisterEmailError = emailEmpty,
-                isWorkshopCodeError = codeEmpty,
-                isTechRegisterPasswordError = passwordEmpty
+                isTechFullNameError = !nameValid,
+                isTechRegisterEmailError = !emailValid,
+                isWorkshopCodeError = !codeValid,
+                isTechRegisterPasswordError = !passwordValid
             )
         }
-        return !nameEmpty && !emailEmpty && !codeEmpty && !passwordEmpty
+        return nameValid && emailValid && codeValid && passwordValid
     }
 
     fun sendWorkshopVerificationCode() {

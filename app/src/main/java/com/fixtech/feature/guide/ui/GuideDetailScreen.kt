@@ -190,11 +190,11 @@ fun GuideDetailScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 StructuralToolChip(
-                    label = "Herramienta #1",
+                    label = "Herramienta estructural",
                     modifier = Modifier.weight(1f)
                 )
                 StructuralToolChip(
-                    label = "Herramienta #2",
+                    label = "Instrumento técnico",
                     modifier = Modifier.weight(1f)
                 )
             }

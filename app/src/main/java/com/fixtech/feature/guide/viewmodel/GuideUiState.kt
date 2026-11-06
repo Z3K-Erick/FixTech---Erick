@@ -33,7 +33,7 @@ data class GuideUiState(
     val formEstimatedTime: String = "",
     val formModelSpec: String = "",
     val formToolInput: String = "",
-    val formToolsList: List<String> = listOf("Herramienta #1", "Herramienta #2"),
+    val formToolsList: List<String> = emptyList(),
     val formStepCount: Int = 1,
     val formSteps: List<StepFormState> = listOf(StepFormState()),
 

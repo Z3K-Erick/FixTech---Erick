@@ -47,6 +47,7 @@ import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
 import com.fixtech.core.theme.TextSecondary
+import com.fixtech.feature.profile.viewmodel.ProfileUiState
 import com.fixtech.feature.profile.viewmodel.ProfileViewModel
 
 @Composable
@@ -66,7 +67,8 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = 20.dp)
+                .padding(top = 16.dp, bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header con título "FixTech"
@@ -105,238 +107,259 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Avatar circular azul con la inicial "U", nombre "Usuario" y subtítulo gris "Free"
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(PrimaryBlue, shape = CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = uiState.userInitial,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
+            UserProfileContent(
+                uiState = uiState,
+                onToggleNotifications = profileViewModel::toggleUserNotifications,
+                onLogout = onLogout
+            )
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(14.dp))
-
+@Composable
+fun UserProfileContent(
+    uiState: ProfileUiState,
+    onToggleNotifications: (Boolean) -> Unit,
+    onLogout: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Avatar circular azul con la inicial "U", nombre "Usuario" y subtítulo gris "Free"
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .background(PrimaryBlue, shape = CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
-                text = uiState.userName,
-                fontSize = 20.sp,
+                text = uiState.userInitial,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = Color.White
             )
+        }
 
-            Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-            Text(
-                text = uiState.userPlan,
-                fontSize = 14.sp,
-                color = TextSecondary
-            )
+        Text(
+            text = uiState.userName,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-            // Row con solo 2 tarjetas contadoras: "0" / "Equipos guardados" y "0" / "Guías favoritas"
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceDark)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "${uiState.savedDevicesCount}",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryBlue
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Equipos guardados",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                    }
-                }
+        Text(
+            text = uiState.userPlan,
+            fontSize = 14.sp,
+            color = TextSecondary
+        )
 
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceDark)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "${uiState.favoriteGuidesCount}",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryBlue
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Guías favoritas",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                    }
-                }
-            }
+        Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(26.dp))
-
-            // Sección PREFERENCIAS
-            Text(
-                text = "PREFERENCIAS",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextSecondary,
-                letterSpacing = 1.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
-            )
-
+        // Row con solo 2 tarjetas contadoras: "0" / "Equipos guardados" y "0" / "Guías favoritas"
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceDark)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Notificaciones",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Alertas de nuevas guías disponibles",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                    }
-                    Switch(
-                        checked = uiState.userNotificationsEnabled,
-                        onCheckedChange = profileViewModel::toggleUserNotifications,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = PrimaryBlue,
-                            uncheckedThumbColor = TextSecondary,
-                            uncheckedTrackColor = BackgroundDark
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Sección ACERCA DE
-            Text(
-                text = "ACERCA DE",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextSecondary,
-                letterSpacing = 1.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = SurfaceDark)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "FixTech",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = PrimaryBlue.copy(alpha = 0.15f)
-                        ) {
-                            Text(
-                                text = "v1.0",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = PrimaryBlue,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     Text(
-                        text = "App de mantenimiento paso a paso creada con el apoyo de la comunidad.",
-                        fontSize = 13.sp,
+                        text = "${uiState.savedDevicesCount}",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlue
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Equipos guardados",
+                        fontSize = 12.sp,
                         color = TextSecondary
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "${uiState.favoriteGuidesCount}",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlue
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Guías favoritas",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+                }
+            }
+        }
 
-            // Botón inferior con borde oscuro y texto/ícono en color rojo: "Cerrar Sesión"
-            OutlinedButton(
-                onClick = onLogout,
+        Spacer(modifier = Modifier.height(26.dp))
+
+        // Sección PREFERENCIAS
+        Text(
+            text = "PREFERENCIAS",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextSecondary,
+            letterSpacing = 1.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+        ) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, SurfaceDark),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = ErrorRed
-                )
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                    contentDescription = "Cerrar Sesión",
-                    tint = ErrorRed,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Cerrar Sesión",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ErrorRed
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Notificaciones",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Alertas de nuevas guías disponibles",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+                }
+                Switch(
+                    checked = uiState.userNotificationsEnabled,
+                    onCheckedChange = onToggleNotifications,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = PrimaryBlue,
+                        uncheckedThumbColor = TextSecondary,
+                        uncheckedTrackColor = BackgroundDark
+                    )
                 )
             }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Sección ACERCA DE
+        Text(
+            text = "ACERCA DE",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextSecondary,
+            letterSpacing = 1.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "FixTech",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = PrimaryBlue.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = "v1.0",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = PrimaryBlue,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "App de mantenimiento paso a paso creada con el apoyo de la comunidad.",
+                    fontSize = 13.sp,
+                    color = TextSecondary
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        // Botón rojo final "Cerrar Sesión"
+        OutlinedButton(
+            onClick = onLogout,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.5f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = ErrorRed
+            )
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                contentDescription = "Cerrar Sesión",
+                tint = ErrorRed,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Cerrar Sesión",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = ErrorRed
+            )
         }
     }
 }

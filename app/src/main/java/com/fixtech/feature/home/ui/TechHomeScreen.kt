@@ -16,13 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Search
@@ -44,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -61,6 +58,7 @@ import com.fixtech.feature.profile.viewmodel.ProfileViewModel
 
 @Composable
 fun TechHomeScreen(
+    onNavigateBack: () -> Unit = {},
     onNavigateToGuideDetail: () -> Unit = {},
     onNavigateToCreateGuide: () -> Unit = {},
     onNavigateToTechProfile: () -> Unit = {},
@@ -79,9 +77,10 @@ fun TechHomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(horizontal = 20.dp)
+                .padding(top = 16.dp, bottom = 32.dp)
         ) {
-            // Barra superior: FixTech Admin + ícono de salida a la derecha
+            // Barra superior: Flecha de regresar + FixTech Admin
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -90,6 +89,14 @@ fun TechHomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Regresar",
+                            tint = TextPrimary
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "FixTech ",
                         fontSize = 24.sp,
@@ -101,14 +108,6 @@ fun TechHomeScreen(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryBlue
-                    )
-                }
-
-                IconButton(onClick = onLogout) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                        contentDescription = "Cerrar Sesión",
-                        tint = TextPrimary
                     )
                 }
             }
@@ -320,128 +319,93 @@ private fun TechGuidesTabContent(
     onNavigateToGuideDetail: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Tarjeta superior destacada para Crear Nueva Guía
+        // Tarjeta limpia con contenedor de imagen/banner superior (placeholder SurfaceDark de 140.dp)
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onNavigateToGuideDetail() },
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = SurfaceDark)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Box(
                     modifier = Modifier
-                        .size(52.dp)
-                        .background(PrimaryBlue.copy(alpha = 0.16f), shape = CircleShape),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .background(SurfaceDark)
+                        .padding(12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Build,
+                        imageVector = Icons.Default.Description,
                         contentDescription = null,
-                        tint = PrimaryBlue,
-                        modifier = Modifier.size(26.dp)
+                        tint = TextSecondary.copy(alpha = 0.4f),
+                        modifier = Modifier
+                            .size(44.dp)
+                            .align(Alignment.Center)
                     )
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = PrimaryBlue.copy(alpha = 0.2f),
+                        modifier = Modifier.align(Alignment.TopStart)
+                    ) {
+                        Text(
+                            text = "Guía Técnica",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = PrimaryBlue,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "Panel de Creación Técnica",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Documenta procedimientos paso a paso para la comunidad",
-                    fontSize = 13.sp,
-                    color = TextSecondary,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = onNavigateToCreateGuide,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryBlue,
-                        contentColor = Color.White
-                    )
+                        .background(BackgroundDark.copy(alpha = 0.35f))
+                        .padding(16.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "+ Subir nueva guía",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = "Mantenimiento Preventivo",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Guía estructural publicada • Paso a paso",
+                        fontSize = 13.sp,
+                        color = TextSecondary
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Sección "Mis guías publicadas / En revisión"
-        Text(
-            text = "Mis guías publicadas / En revisión",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextPrimary
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Contenedor estructural base listo para conectar al ViewModel
-        Card(
+        // Botón limpio con un solo signo + que navegue a create_guide
+        Button(
+            onClick = onNavigateToCreateGuide,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onNavigateToGuideDetail() },
+                .height(50.dp),
             shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-            border = BorderStroke(1.dp, TextSecondary.copy(alpha = 0.15f))
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PrimaryBlue,
+                contentColor = Color.White
+            )
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Description,
-                    contentDescription = null,
-                    tint = TextSecondary.copy(alpha = 0.5f),
-                    modifier = Modifier.size(36.dp)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Contenedor estructural de guías",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Las guías publicadas o en revisión aparecerán en esta sección",
-                    fontSize = 12.sp,
-                    color = TextSecondary,
-                    textAlign = TextAlign.Center
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Crear nueva guía",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

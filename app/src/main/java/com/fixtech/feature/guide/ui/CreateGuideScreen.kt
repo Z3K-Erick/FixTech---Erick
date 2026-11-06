@@ -7,8 +7,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,11 +22,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -71,7 +70,7 @@ import com.fixtech.core.theme.WarningYellow
 import com.fixtech.feature.guide.viewmodel.GuideViewModel
 import com.fixtech.feature.guide.viewmodel.StepFormState
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateGuideScreen(
     onNavigateBack: () -> Unit = {},
@@ -271,7 +270,16 @@ fun CreateGuideScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Campo con botón + para agregar "Herramientas necesarias"
+            // Etiqueta superior + campo estructural limpio para "Herramientas necesarias"
+            Text(
+                text = "Herramientas necesarias",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -279,8 +287,7 @@ fun CreateGuideScreen(
                 OutlinedTextField(
                     value = uiState.formToolInput,
                     onValueChange = guideViewModel::onFormToolInputChanged,
-                    label = { Text("Herramientas necesarias") },
-                    placeholder = { Text("Agregar herramienta...", color = TextSecondary) },
+                    placeholder = { Text("Especifica las herramientas necesarias...", color = TextSecondary) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
@@ -304,51 +311,6 @@ fun CreateGuideScreen(
                         contentDescription = "Agregar herramienta",
                         modifier = Modifier.size(24.dp)
                     )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Chips estructurales de herramientas debajo
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                uiState.formToolsList.forEachIndexed { index, toolName ->
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = SurfaceDark,
-                        border = BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.4f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Build,
-                                contentDescription = null,
-                                tint = PrimaryBlue,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = toolName,
-                                fontSize = 12.sp,
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Quitar",
-                                tint = TextSecondary,
-                                modifier = Modifier
-                                    .size(15.dp)
-                                    .clickable { guideViewModel.removeFormTool(index) }
-                            )
-                        }
-                    }
                 }
             }
 
@@ -425,7 +387,7 @@ fun CreateGuideScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Botón delineado "+ Agregar nuevo paso"
+            // Botón delineado "Agregar nuevo paso" (sin doble signo +)
             OutlinedButton(
                 onClick = { guideViewModel.addStepBlock() },
                 modifier = Modifier
@@ -445,7 +407,7 @@ fun CreateGuideScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "+ Agregar nuevo paso",
+                    text = "Agregar nuevo paso",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = PrimaryBlue
@@ -644,14 +606,12 @@ fun StepFormCard(
                 )
             }
 
-            // Cuando está activo, despliega los chips de nivel de alerta y un campo para el "Texto de la advertencia"
+            // Cuando está activo, despliega las 3 tarjetas compactas de tipo de alerta y el campo para el "Texto de la advertencia"
             if (stepState.includeCautionAlert) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     alertLevels.forEach { level ->
@@ -661,23 +621,46 @@ fun StepFormCard(
                             "Precaución" -> WarningYellow
                             else -> ErrorRed
                         }
+                        val alertIcon = when (level) {
+                            "Informativa" -> Icons.Default.Info
+                            "Precaución" -> Icons.Default.Warning
+                            else -> Icons.Default.Bolt
+                        }
 
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) activeColor.copy(alpha = 0.22f) else BackgroundDark,
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onAlertLevelSelected(level) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) activeColor.copy(alpha = 0.18f) else BackgroundDark
+                            ),
                             border = BorderStroke(
                                 1.dp,
                                 if (isSelected) activeColor else TextSecondary.copy(alpha = 0.25f)
-                            ),
-                            modifier = Modifier.clickable { onAlertLevelSelected(level) }
-                        ) {
-                            Text(
-                                text = level,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) activeColor else TextSecondary,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                             )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 6.dp, vertical = 10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = alertIcon,
+                                    contentDescription = level,
+                                    tint = activeColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = level,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) activeColor else TextPrimary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }

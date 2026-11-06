@@ -13,6 +13,7 @@ import com.fixtech.feature.auth.ui.TechRegisterScreen
 import com.fixtech.feature.guide.ui.CreateGuideScreen
 import com.fixtech.feature.guide.ui.GuideDetailScreen
 import com.fixtech.feature.guide.ui.RepairStepScreen
+import com.fixtech.feature.home.ui.AddDeviceScreen
 import com.fixtech.feature.home.ui.HomeScreen
 import com.fixtech.feature.home.ui.TechHomeScreen
 import com.fixtech.feature.profile.ui.ProfileScreen
@@ -26,6 +27,7 @@ sealed class Screen(val route: String) {
     data object TechRegister : Screen("tech_register")
     data object Home : Screen("home")
     data object TechHome : Screen("tech_home")
+    data object AddDevice : Screen("add_device")
     data object Profile : Screen("profile")
     data object TechProfile : Screen("tech_profile")
     data object GuideDetail : Screen("guide_detail")
@@ -123,14 +125,44 @@ fun AppNavigation(
                 onNavigateToGuideDetail = {
                     navController.navigate(Screen.GuideDetail.route)
                 },
+                onNavigateToAddDevice = {
+                    navController.navigate(Screen.AddDevice.route)
+                },
                 onNavigateToProfile = {
                     navController.navigate(Screen.Profile.route)
+                },
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Screen.AddDevice.route) {
+            AddDeviceScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onSaveDevice = {
+                    if (!navController.popBackStack(Screen.Home.route, inclusive = false)) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    }
                 }
             )
         }
 
         composable(Screen.TechHome.route) {
             TechHomeScreen(
+                onNavigateBack = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.TechLogin.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                },
                 onNavigateToGuideDetail = {
                     navController.navigate(Screen.TechGuideDetail.route)
                 },
@@ -213,7 +245,9 @@ fun AppNavigation(
                 },
                 onFinishGuide = {
                     if (!navController.popBackStack(Screen.TechHome.route, inclusive = false)) {
-                        navController.popBackStack()
+                        if (!navController.popBackStack(Screen.Home.route, inclusive = false)) {
+                            navController.popBackStack()
+                        }
                     }
                 }
             )

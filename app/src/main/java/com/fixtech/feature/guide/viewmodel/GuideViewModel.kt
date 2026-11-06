@@ -82,10 +82,7 @@ class GuideViewModel : ViewModel() {
                     formToolInput = ""
                 )
             } else {
-                val nextIndex = current.formToolsList.size + 1
-                current.copy(
-                    formToolsList = current.formToolsList + "Herramienta #$nextIndex"
-                )
+                current
             }
         }
     }
