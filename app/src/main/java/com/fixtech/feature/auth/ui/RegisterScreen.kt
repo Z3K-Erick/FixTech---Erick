@@ -2,7 +2,6 @@ package com.fixtech.feature.auth.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,7 +34,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fixtech.core.components.FixTechLogo
 import com.fixtech.core.components.FixTechLogoVariant
 import com.fixtech.core.theme.BackgroundDark
-import com.fixtech.core.theme.ErrorRed
+import com.fixtech.core.theme.BorderDark
+import com.fixtech.core.theme.DangerRed
 import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
@@ -60,11 +60,11 @@ fun RegisterScreen(
         errorTextColor = TextPrimary,
         focusedLabelColor = PrimaryBlue,
         unfocusedLabelColor = TextSecondary,
-        errorLabelColor = ErrorRed,
+        errorLabelColor = DangerRed,
         focusedBorderColor = PrimaryBlue,
-        unfocusedBorderColor = SurfaceDark,
-        errorBorderColor = ErrorRed,
-        errorCursorColor = ErrorRed
+        unfocusedBorderColor = BorderDark,
+        errorBorderColor = DangerRed,
+        errorCursorColor = DangerRed
     )
 
     Scaffold(
@@ -79,7 +79,6 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // FixTechLogo con variante llave delineada
             FixTechLogo(
                 variant = FixTechLogoVariant.USER,
                 size = 56.dp,
@@ -88,28 +87,18 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Marca FixTech
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Fix",
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Text(
-                    text = "Tech",
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryBlue
-                )
-            }
+            Text(
+                text = "Crea tu cuenta en FixTech",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                textAlign = TextAlign.Center
+            )
 
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Crea tu cuenta para acceder a todas las guías",
+                text = "Regístrate para ver guías de mantenimiento",
                 fontSize = 13.sp,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
@@ -126,7 +115,7 @@ fun RegisterScreen(
                 singleLine = true,
                 isError = uiState.isRegisterFullNameError,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 colors = textFieldColors
             )
@@ -142,7 +131,7 @@ fun RegisterScreen(
                 singleLine = true,
                 isError = uiState.isRegisterEmailError,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 colors = textFieldColors
             )
@@ -159,12 +148,12 @@ fun RegisterScreen(
                 isError = uiState.isRegisterPasswordError,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 colors = textFieldColors
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Botón Registrarse
             Button(
@@ -175,8 +164,8 @@ fun RegisterScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(20.dp),
+                    .height(48.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryBlue,
                     contentColor = Color.White
@@ -184,14 +173,14 @@ fun RegisterScreen(
             ) {
                 Text(
                     text = "Registrarse",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Regreso al Login
             TextButton(
                 onClick = onNavigateToLogin
             ) {
@@ -202,12 +191,11 @@ fun RegisterScreen(
                 )
             }
 
-            // Enlace sutil para Técnico
             TextButton(
                 onClick = onNavigateToTechRegister
             ) {
                 Text(
-                    text = "¿Eres técnico? Regístrate aquí",
+                    text = "Acceso Técnico (Administrador)",
                     fontSize = 13.sp,
                     color = TextSecondary
                 )

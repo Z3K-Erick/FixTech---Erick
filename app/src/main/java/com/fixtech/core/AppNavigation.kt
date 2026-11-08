@@ -11,12 +11,15 @@ import com.fixtech.feature.auth.ui.RegisterScreen
 import com.fixtech.feature.auth.ui.TechLoginScreen
 import com.fixtech.feature.auth.ui.TechRegisterScreen
 import com.fixtech.feature.guide.ui.CreateGuideScreen
+import com.fixtech.feature.guide.ui.DeviceGuidesScreen
 import com.fixtech.feature.guide.ui.GuideDetailScreen
 import com.fixtech.feature.guide.ui.RepairStepScreen
 import com.fixtech.feature.home.ui.AddDeviceScreen
+import com.fixtech.feature.home.ui.DiagnosticScreen
 import com.fixtech.feature.home.ui.HomeScreen
 import com.fixtech.feature.home.ui.TechHomeScreen
 import com.fixtech.feature.profile.ui.ProfileScreen
+import com.fixtech.feature.profile.ui.PublicTechProfileScreen
 import com.fixtech.feature.profile.ui.TechProfileScreen
 
 sealed class Screen(val route: String) {
@@ -28,6 +31,9 @@ sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object TechHome : Screen("tech_home")
     data object AddDevice : Screen("add_device")
+    data object Diagnostic : Screen("diagnostic")
+    data object DeviceGuides : Screen("device_guides")
+    data object PublicTechProfile : Screen("public_tech_profile")
     data object Profile : Screen("profile")
     data object TechProfile : Screen("tech_profile")
     data object GuideDetail : Screen("guide_detail")
@@ -89,9 +95,7 @@ fun AppNavigation(
         composable(Screen.TechLogin.route) {
             TechLoginScreen(
                 onNavigateToTechHome = {
-                    navController.navigate(Screen.TechHome.route) {
-                        popUpTo(Screen.TechLogin.route) { inclusive = true }
-                    }
+                    navController.navigate(Screen.TechHome.route)
                 },
                 onNavigateToTechRegister = {
                     navController.navigate(Screen.TechRegister.route)
@@ -110,9 +114,7 @@ fun AppNavigation(
                     navController.popBackStack()
                 },
                 onRegisterSuccess = {
-                    navController.navigate(Screen.TechHome.route) {
-                        popUpTo(Screen.TechLogin.route) { inclusive = true }
-                    }
+                    navController.navigate(Screen.TechHome.route)
                 },
                 onNavigateToUserRegister = {
                     navController.navigate(Screen.Register.route)
@@ -122,11 +124,17 @@ fun AppNavigation(
 
         composable(Screen.Home.route) {
             HomeScreen(
+                onNavigateToDeviceGuides = {
+                    navController.navigate(Screen.DeviceGuides.route)
+                },
                 onNavigateToGuideDetail = {
                     navController.navigate(Screen.GuideDetail.route)
                 },
                 onNavigateToAddDevice = {
                     navController.navigate(Screen.AddDevice.route)
+                },
+                onNavigateToDiagnostic = {
+                    navController.navigate(Screen.Diagnostic.route)
                 },
                 onNavigateToProfile = {
                     navController.navigate(Screen.Profile.route)
@@ -139,17 +147,51 @@ fun AppNavigation(
             )
         }
 
+        composable(Screen.DeviceGuides.route) {
+            DeviceGuidesScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onSelectGuide = {
+                    navController.navigate(Screen.GuideDetail.route)
+                },
+                onViewTechProfile = {
+                    navController.navigate(Screen.PublicTechProfile.route)
+                }
+            )
+        }
+
+        composable(Screen.PublicTechProfile.route) {
+            PublicTechProfileScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onSelectGuide = {
+                    navController.navigate(Screen.GuideDetail.route)
+                }
+            )
+        }
+
         composable(Screen.AddDevice.route) {
             AddDeviceScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 },
                 onSaveDevice = {
-                    if (!navController.popBackStack(Screen.Home.route, inclusive = false)) {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Home.route) { inclusive = true }
-                        }
+                    if (!navController.popBackStack(Screen.TechHome.route, inclusive = false)) {
+                        navController.popBackStack()
                     }
+                }
+            )
+        }
+
+        composable(Screen.Diagnostic.route) {
+            DiagnosticScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onOpenRecommendedGuide = {
+                    navController.navigate(Screen.GuideDetail.route)
                 }
             )
         }
@@ -157,14 +199,13 @@ fun AppNavigation(
         composable(Screen.TechHome.route) {
             TechHomeScreen(
                 onNavigateBack = {
-                    if (!navController.popBackStack()) {
-                        navController.navigate(Screen.TechLogin.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
+                    navController.popBackStack()
+                },
+                onNavigateToAddDevice = {
+                    navController.navigate(Screen.AddDevice.route)
                 },
                 onNavigateToGuideDetail = {
-                    navController.navigate(Screen.TechGuideDetail.route)
+                    navController.navigate(Screen.DeviceGuides.route)
                 },
                 onNavigateToCreateGuide = {
                     navController.navigate(Screen.CreateGuide.route)
@@ -223,6 +264,9 @@ fun AppNavigation(
                 },
                 onStartRepair = {
                     navController.navigate(Screen.RepairStep.route)
+                },
+                onViewTechProfile = {
+                    navController.navigate(Screen.PublicTechProfile.route)
                 }
             )
         }
@@ -234,6 +278,9 @@ fun AppNavigation(
                 },
                 onStartRepair = {
                     navController.navigate(Screen.RepairStep.route)
+                },
+                onViewTechProfile = {
+                    navController.navigate(Screen.PublicTechProfile.route)
                 }
             )
         }
@@ -244,8 +291,8 @@ fun AppNavigation(
                     navController.popBackStack()
                 },
                 onFinishGuide = {
-                    if (!navController.popBackStack(Screen.TechHome.route, inclusive = false)) {
-                        if (!navController.popBackStack(Screen.Home.route, inclusive = false)) {
+                    if (!navController.popBackStack(Screen.Home.route, inclusive = false)) {
+                        if (!navController.popBackStack(Screen.TechHome.route, inclusive = false)) {
                             navController.popBackStack()
                         }
                     }

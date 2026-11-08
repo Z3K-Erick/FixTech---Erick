@@ -3,7 +3,6 @@ package com.fixtech.feature.guide.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Image
@@ -32,6 +33,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,16 +60,21 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fixtech.core.theme.AlertDangerBg
+import com.fixtech.core.theme.AlertInfoBg
+import com.fixtech.core.theme.AlertWarningBg
 import com.fixtech.core.theme.BackgroundDark
-import com.fixtech.core.theme.ErrorRed
+import com.fixtech.core.theme.BorderDark
+import com.fixtech.core.theme.DangerRed
 import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
 import com.fixtech.core.theme.TextSecondary
-import com.fixtech.core.theme.WarningYellow
+import com.fixtech.core.theme.WarningAmber
 import com.fixtech.feature.guide.viewmodel.GuideViewModel
 import com.fixtech.feature.guide.viewmodel.StepFormState
 
@@ -79,7 +87,7 @@ fun CreateGuideScreen(
 ) {
     val uiState by guideViewModel.uiState.collectAsState()
 
-    val categories = listOf("Laptop", "PC Escritorio", "Componente")
+    val categories = listOf("Laptop", "PC Escritorio")
     val difficulties = listOf("Básico", "Intermedio", "Avanzado")
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
@@ -90,7 +98,7 @@ fun CreateGuideScreen(
         focusedLabelColor = PrimaryBlue,
         unfocusedLabelColor = TextSecondary,
         focusedBorderColor = PrimaryBlue,
-        unfocusedBorderColor = SurfaceDark
+        unfocusedBorderColor = BorderDark
     )
 
     Scaffold(
@@ -147,13 +155,13 @@ fun CreateGuideScreen(
                 placeholder = { Text("Ingresa el título del procedimiento", color = TextSecondary) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = textFieldColors
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Selector/Chips para "Categoría / Tipo de equipo"
+            // Selector/Chips para "Categoría / Tipo de equipo" (Laptop, PC Escritorio)
             Text(
                 text = "Categoría / Tipo de equipo",
                 fontSize = 13.sp,
@@ -164,33 +172,37 @@ fun CreateGuideScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 categories.forEach { category ->
                     val isSelected = category == uiState.formSelectedCategory
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .clickable { guideViewModel.onFormCategorySelected(category) },
+                        shape = RoundedCornerShape(8.dp),
                         color = if (isSelected) PrimaryBlue else SurfaceDark,
-                        border = if (isSelected) null else BorderStroke(1.dp, TextSecondary.copy(alpha = 0.25f)),
-                        modifier = Modifier.clickable { guideViewModel.onFormCategorySelected(category) }
+                        border = if (isSelected) null else BorderStroke(1.dp, BorderDark)
                     ) {
-                        Text(
-                            text = category,
-                            fontSize = 13.sp,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else TextSecondary,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = category,
+                                fontSize = 13.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                color = if (isSelected) Color.White else TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Selector/Chips para "Nivel de dificultad"
+            // Selector/Chips para "Nivel de dificultad" (Básico, Intermedio, Avanzado)
             Text(
                 text = "Nivel de dificultad",
                 fontSize = 13.sp,
@@ -209,20 +221,20 @@ fun CreateGuideScreen(
                     Surface(
                         modifier = Modifier
                             .weight(1f)
+                            .height(38.dp)
                             .clickable { guideViewModel.onFormDifficultySelected(difficulty) },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(8.dp),
                         color = if (isSelected) PrimaryBlue else SurfaceDark,
-                        border = if (isSelected) null else BorderStroke(1.dp, TextSecondary.copy(alpha = 0.25f))
+                        border = if (isSelected) null else BorderStroke(1.dp, BorderDark)
                     ) {
-                        Box(
-                            modifier = Modifier.padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = difficulty,
                                 fontSize = 13.sp,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                color = if (isSelected) Color.White else TextSecondary
+                                color = if (isSelected) Color.White else TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -239,7 +251,7 @@ fun CreateGuideScreen(
                 placeholder = { Text("Tiempo estimado", color = TextSecondary) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = textFieldColors
             )
 
@@ -252,14 +264,14 @@ fun CreateGuideScreen(
                 placeholder = { Text("Modelo o serie aplicable", color = TextSecondary) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = textFieldColors
             )
 
             Spacer(modifier = Modifier.height(26.dp))
 
             // =========================================================================
-            // SECCIÓN 2 - HERRAMIENTAS Y PORTADA
+            // SECCIÓN 2 - HERRAMIENTAS Y PORTADA (SIN chips falsos "Herramienta #1" ni "Herramienta #2")
             // =========================================================================
             Text(
                 text = "Herramientas y Portada",
@@ -270,7 +282,6 @@ fun CreateGuideScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Etiqueta superior + campo estructural limpio para "Herramientas necesarias"
             Text(
                 text = "Herramientas necesarias",
                 fontSize = 13.sp,
@@ -287,19 +298,19 @@ fun CreateGuideScreen(
                 OutlinedTextField(
                     value = uiState.formToolInput,
                     onValueChange = guideViewModel::onFormToolInputChanged,
-                    placeholder = { Text("Especifica las herramientas necesarias...", color = TextSecondary) },
+                    placeholder = { Text("Ej. Destornillador Phillips #0", color = TextSecondary) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = textFieldColors
                 )
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Button(
                     onClick = { guideViewModel.addFormTool() },
-                    modifier = Modifier.size(54.dp),
-                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.size(48.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PrimaryBlue,
                         contentColor = Color.White
@@ -309,27 +320,73 @@ fun CreateGuideScreen(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Agregar herramienta",
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
+                }
+            }
+
+            if (uiState.formToolsList.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    uiState.formToolsList.forEachIndexed { idx, toolName ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            color = SurfaceDark,
+                            border = BorderStroke(1.dp, BorderDark)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Build,
+                                    contentDescription = null,
+                                    tint = PrimaryBlue,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = toolName,
+                                    fontSize = 13.sp,
+                                    color = TextPrimary,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { guideViewModel.removeFormTool(idx) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Quitar herramienta",
+                                        tint = DangerRed,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Caja con borde punteado/delineado (height = 120.dp) con ícono de imagen/subida y texto "Subir imagen de portada"
+            // Caja con borde punteado/delineado (height = 120.dp) para "Subir imagen de portada"
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
-                    .background(SurfaceDark.copy(alpha = 0.65f), shape = RoundedCornerShape(14.dp))
+                    .background(SurfaceDark, shape = RoundedCornerShape(10.dp))
                     .drawBehind {
                         drawRoundRect(
-                            color = PrimaryBlue.copy(alpha = 0.6f),
+                            color = BorderDark,
                             style = Stroke(
                                 width = 1.5.dp.toPx(),
                                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f)
                             ),
-                            cornerRadius = CornerRadius(14.dp.toPx())
+                            cornerRadius = CornerRadius(10.dp.toPx())
                         )
                     }
                     .clickable { },
@@ -351,7 +408,7 @@ fun CreateGuideScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Formato estructural JPG / PNG",
+                        text = "Formato JPG / PNG",
                         fontSize = 11.sp,
                         color = TextSecondary
                     )
@@ -381,48 +438,54 @@ fun CreateGuideScreen(
                     onCautionToggled = { guideViewModel.onStepCautionToggled(index, it) },
                     onAlertLevelSelected = { guideViewModel.onStepAlertLevelSelected(index, it) },
                     onAlertTextChanged = { guideViewModel.onStepAlertTextChanged(index, it) },
+                    onRequiresConfirmationToggled = { guideViewModel.onStepRequiresConfirmationToggled(index, it) },
+                    onConfirmationTextChanged = { guideViewModel.onStepConfirmationTextChanged(index, it) },
                     onDeleteStep = { guideViewModel.removeStepBlock(index) }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Botón delineado "Agregar nuevo paso" (sin doble signo +)
+            // Botón Secundario / Delineado "Agregar nuevo paso" (sin doble signo + +)
             OutlinedButton(
                 onClick = { guideViewModel.addStepBlock() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, PrimaryBlue),
+                    .height(48.dp),
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, BorderDark),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = PrimaryBlue
+                    containerColor = SurfaceDark,
+                    contentColor = TextPrimary
                 )
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = null,
                     tint = PrimaryBlue,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Agregar nuevo paso",
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = PrimaryBlue
+                    color = TextPrimary
                 )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Botón Final: PrimaryBlue de ancho completo "Publicar guía" que regrese a TechHomeScreen
+            // Botón Principal: "Publicar guía"
             Button(
-                onClick = onPublishGuide,
+                onClick = {
+                    guideViewModel.publishGuide()
+                    onPublishGuide()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .height(48.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryBlue,
                     contentColor = Color.White
@@ -430,8 +493,8 @@ fun CreateGuideScreen(
             ) {
                 Text(
                     text = "Publicar guía",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = Color.White
                 )
             }
@@ -450,26 +513,28 @@ fun StepFormCard(
     onCautionToggled: (Boolean) -> Unit = {},
     onAlertLevelSelected: (String) -> Unit = {},
     onAlertTextChanged: (String) -> Unit = {},
+    onRequiresConfirmationToggled: (Boolean) -> Unit = {},
+    onConfirmationTextChanged: (String) -> Unit = {},
     onDeleteStep: () -> Unit = {}
 ) {
     val alertLevels = listOf("Informativa", "Precaución", "Peligro eléctrico")
 
     val innerFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = BackgroundDark,
-        unfocusedContainerColor = BackgroundDark,
+        focusedContainerColor = SurfaceDark,
+        unfocusedContainerColor = SurfaceDark,
         focusedTextColor = TextPrimary,
         unfocusedTextColor = TextPrimary,
         focusedLabelColor = PrimaryBlue,
         unfocusedLabelColor = TextSecondary,
         focusedBorderColor = PrimaryBlue,
-        unfocusedBorderColor = BackgroundDark
+        unfocusedBorderColor = BorderDark
     )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-        border = BorderStroke(1.dp, TextSecondary.copy(alpha = 0.15f))
+        border = BorderStroke(1.dp, BorderDark)
     ) {
         Column(
             modifier = Modifier
@@ -488,7 +553,7 @@ fun StepFormCard(
                 ) {
                     Text(
                         text = "Paso #$stepNumber",
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryBlue,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -499,7 +564,7 @@ fun StepFormCard(
                     Icon(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = "Eliminar paso",
-                        tint = ErrorRed
+                        tint = DangerRed
                     )
                 }
             }
@@ -514,13 +579,13 @@ fun StepFormCard(
                 placeholder = { Text("Título de la acción...", color = TextSecondary) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = innerFieldColors
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // OutlinedTextField (multilínea, minLines = 3) para "Descripción detallada del paso"
+            // OutlinedTextField para "Descripción detallada del paso"
             OutlinedTextField(
                 value = stepState.description,
                 onValueChange = onDescriptionChanged,
@@ -528,7 +593,7 @@ fun StepFormCard(
                 placeholder = { Text("Explica claramente las instrucciones de este paso...", color = TextSecondary) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = innerFieldColors
             )
 
@@ -538,16 +603,16 @@ fun StepFormCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(84.dp)
-                    .background(BackgroundDark, shape = RoundedCornerShape(12.dp))
+                    .height(80.dp)
+                    .background(BackgroundDark, shape = RoundedCornerShape(10.dp))
                     .drawBehind {
                         drawRoundRect(
-                            color = TextSecondary.copy(alpha = 0.4f),
+                            color = BorderDark,
                             style = Stroke(
                                 width = 1.dp.toPx(),
                                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f)
                             ),
-                            cornerRadius = CornerRadius(12.dp.toPx())
+                            cornerRadius = CornerRadius(10.dp.toPx())
                         )
                     }
                     .clickable { },
@@ -558,7 +623,7 @@ fun StepFormCard(
                         imageVector = Icons.Default.Image,
                         contentDescription = "Subir foto o video del paso",
                         tint = PrimaryBlue,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -572,7 +637,7 @@ fun StepFormCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Switch o selector de "Incluir alerta de precaución"
+            // Switch de "Incluir alerta de precaución"
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -582,7 +647,7 @@ fun StepFormCard(
                     Icon(
                         imageVector = Icons.Default.Warning,
                         contentDescription = null,
-                        tint = WarningYellow,
+                        tint = WarningAmber,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -599,27 +664,33 @@ fun StepFormCard(
                     onCheckedChange = onCautionToggled,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
-                        checkedTrackColor = WarningYellow,
+                        checkedTrackColor = WarningAmber,
                         uncheckedThumbColor = TextSecondary,
                         uncheckedTrackColor = BackgroundDark
                     )
                 )
             }
 
-            // Cuando está activo, despliega las 3 tarjetas compactas de tipo de alerta y el campo para el "Texto de la advertencia"
+            // 3 opciones de nivel de alerta ("Informativa", "Precaución", "Peligro eléctrico")
+            // en un Row con Modifier.weight(1f) cada una, RoundedCornerShape(8.dp), fontSize = 11.sp, maxLines = 1
             if (stepState.includeCautionAlert) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     alertLevels.forEach { level ->
                         val isSelected = level == stepState.selectedAlertLevel
                         val activeColor = when (level) {
                             "Informativa" -> PrimaryBlue
-                            "Precaución" -> WarningYellow
-                            else -> ErrorRed
+                            "Precaución" -> WarningAmber
+                            else -> DangerRed
+                        }
+                        val activeBg = when (level) {
+                            "Informativa" -> AlertInfoBg
+                            "Precaución" -> AlertWarningBg
+                            else -> AlertDangerBg
                         }
                         val alertIcon = when (level) {
                             "Informativa" -> Icons.Default.Info
@@ -627,38 +698,38 @@ fun StepFormCard(
                             else -> Icons.Default.Bolt
                         }
 
-                        Card(
+                        Surface(
                             modifier = Modifier
                                 .weight(1f)
                                 .clickable { onAlertLevelSelected(level) },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) activeColor.copy(alpha = 0.18f) else BackgroundDark
-                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) activeBg else BackgroundDark,
                             border = BorderStroke(
                                 1.dp,
-                                if (isSelected) activeColor else TextSecondary.copy(alpha = 0.25f)
+                                if (isSelected) activeColor else BorderDark
                             )
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 6.dp, vertical = 10.dp),
+                                    .padding(horizontal = 4.dp, vertical = 10.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
                                     imageVector = alertIcon,
                                     contentDescription = level,
                                     tint = activeColor,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = level,
                                     fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSelected) activeColor else TextPrimary,
-                                    textAlign = TextAlign.Center
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -675,9 +746,61 @@ fun StepFormCard(
                     singleLine = false,
                     minLines = 2,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = innerFieldColors
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Checkbox obligatorio para bloquear avance hasta que el usuario confirme
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onRequiresConfirmationToggled(!stepState.requiresConfirmation) },
+                    shape = RoundedCornerShape(10.dp),
+                    color = BackgroundDark,
+                    border = BorderStroke(1.dp, BorderDark)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = stepState.requiresConfirmation,
+                            onCheckedChange = onRequiresConfirmationToggled,
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = PrimaryBlue,
+                                uncheckedColor = TextSecondary,
+                                checkmarkColor = Color.White
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Bloquear avance hasta que el usuario confirme (Checkbox obligatorio)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextPrimary,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+
+                if (stepState.requiresConfirmation) {
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = stepState.confirmationText,
+                        onValueChange = onConfirmationTextChanged,
+                        label = { Text("Texto del checkbox de confirmación") },
+                        placeholder = { Text("Ej. Batería desconectada", color = TextSecondary) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = innerFieldColors
+                    )
+                }
             }
         }
     }

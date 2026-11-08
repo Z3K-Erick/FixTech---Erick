@@ -2,6 +2,7 @@ package com.fixtech.core.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -22,9 +23,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fixtech.core.theme.BorderDark
 import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SurfaceDark
-import com.fixtech.core.theme.TextSecondary
 
 object FixTechTabs {
     val UserTabs = listOf("Mis Equipos", "Explorar", "Perfil")
@@ -44,7 +45,12 @@ fun FixTechSegmentedControl(
             .height(40.dp)
             .background(
                 color = SurfaceDark,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(10.dp)
+            )
+            .border(
+                width = 1.dp,
+                color = BorderDark,
+                shape = RoundedCornerShape(10.dp)
             )
             .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -56,7 +62,7 @@ fun FixTechSegmentedControl(
                 label = "tabBackground"
             )
             val textColor by animateColorAsState(
-                targetValue = if (isSelected) Color.White else TextSecondary,
+                targetValue = if (isSelected) Color.White else Color(0xFF94A3B8),
                 label = "tabTextColor"
             )
 
@@ -64,8 +70,8 @@ fun FixTechSegmentedControl(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(backgroundColor)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(backgroundColor, RoundedCornerShape(7.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -78,7 +84,8 @@ fun FixTechSegmentedControl(
                     text = text,
                     fontSize = 13.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = textColor
+                    color = textColor,
+                    maxLines = 1
                 )
             }
         }

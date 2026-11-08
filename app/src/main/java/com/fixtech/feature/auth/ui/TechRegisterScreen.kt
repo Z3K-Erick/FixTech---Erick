@@ -1,8 +1,10 @@
 package com.fixtech.feature.auth.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,13 +18,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,14 +44,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fixtech.core.components.FixTechLogo
 import com.fixtech.core.components.FixTechLogoVariant
 import com.fixtech.core.theme.BackgroundDark
-import com.fixtech.core.theme.ErrorRed
+import com.fixtech.core.theme.BorderDark
+import com.fixtech.core.theme.DangerRed
 import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
 import com.fixtech.core.theme.TextSecondary
 import com.fixtech.feature.auth.viewmodel.AuthViewModel
 
-@Suppress("DEPRECATION")
 @Composable
 fun TechRegisterScreen(
     onNavigateToTechLogin: () -> Unit = {},
@@ -67,11 +70,11 @@ fun TechRegisterScreen(
         errorTextColor = TextPrimary,
         focusedLabelColor = PrimaryBlue,
         unfocusedLabelColor = TextSecondary,
-        errorLabelColor = ErrorRed,
+        errorLabelColor = DangerRed,
         focusedBorderColor = PrimaryBlue,
-        unfocusedBorderColor = SurfaceDark,
-        errorBorderColor = ErrorRed,
-        errorCursorColor = ErrorRed
+        unfocusedBorderColor = BorderDark,
+        errorBorderColor = DangerRed,
+        errorCursorColor = DangerRed
     )
 
     Scaffold(
@@ -86,7 +89,7 @@ fun TechRegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // FixTechLogo con tuerca hexagonal delineada (Técnico)
+            // Logo con tuerca hexagonal delineada (Técnico)
             FixTechLogo(
                 variant = FixTechLogoVariant.TECH,
                 size = 56.dp,
@@ -107,7 +110,7 @@ fun TechRegisterScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Completa tus datos para formar parte de la red de técnicos",
+                text = "Crea tu cuenta de técnico autorizado",
                 fontSize = 13.sp,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
@@ -124,7 +127,7 @@ fun TechRegisterScreen(
                 singleLine = true,
                 isError = uiState.isTechFullNameError,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 colors = textFieldColors
             )
@@ -140,14 +143,14 @@ fun TechRegisterScreen(
                 singleLine = true,
                 isError = uiState.isTechRegisterEmailError,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 colors = textFieldColors
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3. Campo Código de verificación de taller con botón cuadrado azul a su derecha
+            // 3. Campo Código de verificación de taller + botón cuadrado (48.dp x 48.dp, SurfaceDark, BorderDark)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -160,29 +163,29 @@ fun TechRegisterScreen(
                     singleLine = true,
                     isError = uiState.isWorkshopCodeError,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(10.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     colors = textFieldColors
                 )
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
-                // Botón cuadrado azul a su derecha con ícono de enviar Icons.Default.Send
-                Button(
-                    onClick = { authViewModel.sendWorkshopVerificationCode() },
-                    modifier = Modifier.size(54.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryBlue,
-                        contentColor = Color.White
-                    ),
-                    contentPadding = PaddingValues(0.dp)
+                Surface(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clickable { authViewModel.sendWorkshopVerificationCode() },
+                    shape = RoundedCornerShape(10.dp),
+                    color = SurfaceDark,
+                    border = BorderStroke(1.dp, BorderDark)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "Enviar código",
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Enviar código",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 
@@ -198,14 +201,14 @@ fun TechRegisterScreen(
                 isError = uiState.isTechRegisterPasswordError,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 colors = textFieldColors
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Botón Registrarse
+            // Botón Principal: "Registrarse"
             Button(
                 onClick = {
                     if (authViewModel.validateTechRegister()) {
@@ -214,39 +217,38 @@ fun TechRegisterScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(20.dp),
+                    .height(48.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryBlue,
                     contentColor = Color.White
                 )
             ) {
                 Text(
-                    text = "Registrarse como Técnico",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
+                    text = "Registrarse",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Regreso al Login Técnico
             TextButton(
                 onClick = onNavigateToTechLogin
             ) {
                 Text(
-                    text = "¿Ya tienes cuenta de técnico? Inicia sesión",
+                    text = "¿Ya tienes cuenta? Inicia sesión",
                     fontSize = 14.sp,
                     color = PrimaryBlue
                 )
             }
 
-            // Enlace hacia Registro de Usuario
             TextButton(
                 onClick = onNavigateToUserRegister
             ) {
                 Text(
-                    text = "¿Eres usuario normal? Regístrate aquí",
+                    text = "Volver a acceso de Usuario",
                     fontSize = 13.sp,
                     color = TextSecondary
                 )

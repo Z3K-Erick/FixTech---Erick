@@ -42,7 +42,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fixtech.core.components.FixTechSegmentedControl
 import com.fixtech.core.components.FixTechTabs
 import com.fixtech.core.theme.BackgroundDark
-import com.fixtech.core.theme.ErrorRed
+import com.fixtech.core.theme.BorderDark
+import com.fixtech.core.theme.DangerBorder
+import com.fixtech.core.theme.DangerRed
 import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
@@ -71,7 +73,7 @@ fun ProfileScreen(
                 .padding(top = 16.dp, bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header con título "FixTech"
+            // 1) Header "FixTech"
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -94,7 +96,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // FixTechSegmentedControl con "Perfil" seleccionado (índice 2)
+            // FixTechSegmentedControl ("Mis Equipos" | "Explorar" | "Perfil")
             FixTechSegmentedControl(
                 items = FixTechTabs.UserTabs,
                 selectedIndex = 2,
@@ -110,7 +112,10 @@ fun ProfileScreen(
             UserProfileContent(
                 uiState = uiState,
                 onToggleNotifications = profileViewModel::toggleUserNotifications,
-                onLogout = onLogout
+                onLogout = {
+                    profileViewModel.clearSession()
+                    onLogout()
+                }
             )
         }
     }
@@ -129,7 +134,7 @@ fun UserProfileContent(
             .padding(bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Avatar circular azul con la inicial "U", nombre "Usuario" y subtítulo gris "Free"
+        // 2) Avatar circular azul con la inicial real del usuario logueado, su nombre, correo y subtítulo "Free"
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -153,25 +158,35 @@ fun UserProfileContent(
             color = TextPrimary
         )
 
+        if (uiState.userEmail.isNotBlank()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = uiState.userEmail,
+                fontSize = 13.sp,
+                color = TextSecondary
+            )
+        }
+
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = uiState.userPlan,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             color = TextSecondary
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Row con solo 2 tarjetas contadoras: "0" / "Equipos guardados" y "0" / "Guías favoritas"
+        // 3) Fila con SOLO 2 tarjetas contadoras (Modifier.weight(1f)): "Equipos guardados" y "Guías favoritas"
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Card(
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+                border = BorderStroke(1.dp, BorderDark)
             ) {
                 Column(
                     modifier = Modifier
@@ -196,8 +211,9 @@ fun UserProfileContent(
 
             Card(
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+                border = BorderStroke(1.dp, BorderDark)
             ) {
                 Column(
                     modifier = Modifier
@@ -223,7 +239,7 @@ fun UserProfileContent(
 
         Spacer(modifier = Modifier.height(26.dp))
 
-        // Sección PREFERENCIAS
+        // 4) Sección "PREFERENCIAS": Tarjeta "Notificaciones" con Switch interactivo funcional
         Text(
             text = "PREFERENCIAS",
             fontSize = 12.sp,
@@ -237,8 +253,9 @@ fun UserProfileContent(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+            border = BorderStroke(1.dp, BorderDark)
         ) {
             Row(
                 modifier = Modifier
@@ -276,7 +293,7 @@ fun UserProfileContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Sección ACERCA DE
+        // 5) Sección "ACERCA DE": Tarjeta "FixTech" con badge "v1.0" a la derecha y descripción
         Text(
             text = "ACERCA DE",
             fontSize = 12.sp,
@@ -290,8 +307,9 @@ fun UserProfileContent(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+            border = BorderStroke(1.dp, BorderDark)
         ) {
             Column(
                 modifier = Modifier
@@ -311,7 +329,8 @@ fun UserProfileContent(
                     )
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = PrimaryBlue.copy(alpha = 0.15f)
+                        color = PrimaryBlue.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, BorderDark)
                     ) {
                         Text(
                             text = "v1.0",
@@ -335,22 +354,23 @@ fun UserProfileContent(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Botón rojo final "Cerrar Sesión"
+        // 6) Al final: Botón rojo delineado "Cerrar Sesión" funcional
         OutlinedButton(
             onClick = onLogout,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.5f)),
+                .height(48.dp),
+            shape = RoundedCornerShape(10.dp),
+            border = BorderStroke(1.dp, DangerBorder),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = ErrorRed
+                containerColor = SurfaceDark,
+                contentColor = DangerRed
             )
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                 contentDescription = "Cerrar Sesión",
-                tint = ErrorRed,
+                tint = DangerRed,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -358,7 +378,7 @@ fun UserProfileContent(
                 text = "Cerrar Sesión",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = ErrorRed
+                color = DangerRed
             )
         }
     }

@@ -2,7 +2,6 @@ package com.fixtech.feature.auth.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,7 +34,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fixtech.core.components.FixTechLogo
 import com.fixtech.core.components.FixTechLogoVariant
 import com.fixtech.core.theme.BackgroundDark
-import com.fixtech.core.theme.ErrorRed
+import com.fixtech.core.theme.BorderDark
+import com.fixtech.core.theme.DangerRed
 import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
@@ -61,11 +61,11 @@ fun TechLoginScreen(
         errorTextColor = TextPrimary,
         focusedLabelColor = PrimaryBlue,
         unfocusedLabelColor = TextSecondary,
-        errorLabelColor = ErrorRed,
+        errorLabelColor = DangerRed,
         focusedBorderColor = PrimaryBlue,
-        unfocusedBorderColor = SurfaceDark,
-        errorBorderColor = ErrorRed,
-        errorCursorColor = ErrorRed
+        unfocusedBorderColor = BorderDark,
+        errorBorderColor = DangerRed,
+        errorCursorColor = DangerRed
     )
 
     Scaffold(
@@ -80,7 +80,7 @@ fun TechLoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // FixTechLogo con tuerca hexagonal delineada (Técnico)
+            // Logo con tuerca hexagonal delineada
             FixTechLogo(
                 variant = FixTechLogoVariant.TECH,
                 size = 56.dp,
@@ -89,45 +89,35 @@ fun TechLoginScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Título "FixTech Técnico"
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "FixTech ",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Text(
-                    text = "Técnico",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryBlue
-                )
-            }
+            Text(
+                text = "FixTech Técnico",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                textAlign = TextAlign.Center
+            )
 
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Ingresa tus credenciales de colaborador",
+                text = "Ingresa tus credenciales de administrador",
                 fontSize = 13.sp,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // Campo Correo Electrónico
             OutlinedTextField(
                 value = uiState.techEmail,
                 onValueChange = authViewModel::onTechEmailChanged,
-                label = { Text("Correo Electrónico") },
+                label = { Text("Correo electrónico") },
                 placeholder = { Text("tecnico@fixtech.com", color = TextSecondary) },
                 singleLine = true,
                 isError = uiState.isTechEmailError,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 colors = textFieldColors
             )
@@ -144,14 +134,14 @@ fun TechLoginScreen(
                 isError = uiState.isTechPasswordError,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 colors = textFieldColors
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Botón Ingresar
+            // Botón Iniciar Sesión
             Button(
                 onClick = {
                     if (authViewModel.validateTechLogin()) {
@@ -160,39 +150,38 @@ fun TechLoginScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(20.dp),
+                    .height(48.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryBlue,
                     contentColor = Color.White
                 )
             ) {
                 Text(
-                    text = "Ingresar al Panel Técnico",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
+                    text = "Iniciar Sesión",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Enlace hacia Registro de Técnico
             TextButton(
                 onClick = onNavigateToTechRegister
             ) {
                 Text(
-                    text = "¿No tienes cuenta de técnico? Regístrate",
+                    text = "¿No tienes cuenta? Regístrate",
                     fontSize = 14.sp,
                     color = PrimaryBlue
                 )
             }
 
-            // Enlace de regreso a Usuario Normal
             TextButton(
                 onClick = onNavigateToUserLogin
             ) {
                 Text(
-                    text = "¿Eres usuario normal? Inicia sesión aquí",
+                    text = "Volver a acceso de Usuario",
                     fontSize = 13.sp,
                     color = TextSecondary
                 )

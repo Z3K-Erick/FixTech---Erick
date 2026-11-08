@@ -2,6 +2,8 @@ package com.fixtech.feature.guide.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,16 +16,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -42,37 +45,51 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fixtech.core.theme.BackgroundDark
+import com.fixtech.core.theme.BorderDark
+import com.fixtech.core.theme.DangerRed
 import com.fixtech.core.theme.PrimaryBlue
+import com.fixtech.core.theme.SuccessGreen
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
 import com.fixtech.core.theme.TextSecondary
-import com.fixtech.core.theme.WarningYellow
+import com.fixtech.core.theme.WarningAmber
 import com.fixtech.feature.guide.viewmodel.GuideViewModel
+import com.fixtech.feature.home.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuideDetailScreen(
     onNavigateBack: () -> Unit,
     onStartRepair: () -> Unit,
-    guideViewModel: GuideViewModel = viewModel()
+    onViewTechProfile: () -> Unit = {},
+    guideViewModel: GuideViewModel = viewModel(),
+    homeViewModel: HomeViewModel = viewModel()
 ) {
     val uiState by guideViewModel.uiState.collectAsState()
+
+    val (difficultyDisplay, activeColor) = when (uiState.difficultyLabel) {
+        "Fácil", "Bajo", "Básico" -> "Fácil" to SuccessGreen
+        "Difícil", "Alto", "Avanzado" -> "Difícil" to DangerRed
+        else -> "Media" to WarningAmber
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Detalle de la guía",
+                        text = uiState.title,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
@@ -81,6 +98,15 @@ fun GuideDetailScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Regresar",
                             tint = TextPrimary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { guideViewModel.toggleFavoriteGuide(uiState.selectedGuideId) }) {
+                        Icon(
+                            imageVector = if (uiState.isCurrentGuideFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                            contentDescription = "Favorito",
+                            tint = if (uiState.isCurrentGuideFavorite) WarningAmber else TextSecondary
                         )
                     }
                 },
@@ -98,12 +124,13 @@ fun GuideDetailScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            // Box superior de 200.dp como placeholder de la foto del hardware con badge "Laptop" en la esquina
+            // Imagen / Placeholder superior de preparación
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .background(SurfaceDark, shape = RoundedCornerShape(16.dp))
+                    .height(190.dp)
+                    .background(SurfaceDark, shape = RoundedCornerShape(10.dp))
+                    .border(1.dp, BorderDark, RoundedCornerShape(10.dp))
                     .padding(14.dp)
             ) {
                 Icon(
@@ -116,8 +143,9 @@ fun GuideDetailScreen(
                 )
 
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = PrimaryBlue.copy(alpha = 0.2f),
+                    border = BorderStroke(1.dp, BorderDark),
                     modifier = Modifier.align(Alignment.TopStart)
                 ) {
                     Text(
@@ -132,125 +160,135 @@ fun GuideDetailScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Título estructural de la guía
-            Text(
-                text = uiState.title,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = uiState.description,
-                fontSize = 13.sp,
-                color = TextSecondary
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Fila de metadatos (Tiempo estimado, Dificultad, Autor técnico)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                MetadataChipCard(
-                    icon = Icons.Default.Schedule,
-                    label = uiState.estimatedTimeLabel,
-                    modifier = Modifier.weight(1f)
-                )
-                MetadataChipCard(
-                    icon = Icons.Default.Speed,
-                    label = uiState.difficultyLabel,
-                    modifier = Modifier.weight(1f)
-                )
-                MetadataChipCard(
-                    icon = Icons.Default.Person,
-                    label = uiState.authorLabel,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Sección "Herramientas necesarias"
-            Text(
-                text = "Herramientas necesarias",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Contenedores tipo chip/fila con ícono de herramienta
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                StructuralToolChip(
-                    label = "Herramienta estructural",
-                    modifier = Modifier.weight(1f)
-                )
-                StructuralToolChip(
-                    label = "Instrumento técnico",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Sección "Requisitos previos / Precauciones"
-            Text(
-                text = "Requisitos previos / Precauciones",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Caja con fondo oscuro y borde izquierdo/contorno de advertencia
+            // Semáforo de Dificultad (PreparationView de Figma)
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF2A1C1B)),
-                border = BorderStroke(1.dp, WarningYellow.copy(alpha = 0.6f))
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+                border = BorderStroke(1.dp, BorderDark)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "Advertencia",
-                        tint = WarningYellow,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = BackgroundDark,
+                        border = BorderStroke(1.dp, BorderDark)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(
+                                        if (difficultyDisplay == "Difícil") DangerRed else TextSecondary.copy(alpha = 0.2f),
+                                        CircleShape
+                                    )
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(
+                                        if (difficultyDisplay == "Media") WarningAmber else TextSecondary.copy(alpha = 0.2f),
+                                        CircleShape
+                                    )
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(
+                                        if (difficultyDisplay == "Fácil") SuccessGreen else TextSecondary.copy(alpha = 0.2f),
+                                        CircleShape
+                                    )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Requisitos previos y precauciones",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = WarningYellow
+                            text = "DIFICULTAD",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextSecondary,
+                            letterSpacing = 1.sp
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Verifique las condiciones de seguridad del área de trabajo y desconecte la fuente de energía antes de iniciar.",
-                            fontSize = 12.sp,
-                            color = TextPrimary.copy(alpha = 0.85f)
+                            text = "Nivel $difficultyDisplay",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = activeColor
                         )
                     }
+
+                    // Enlace para ver el perfil público del técnico autor de la guía
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = PrimaryBlue.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, BorderDark),
+                        modifier = Modifier.clickable {
+                            homeViewModel.selectPublicTech(uiState.authorId)
+                            onViewTechProfile()
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = PrimaryBlue,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = uiState.authorLabel,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = PrimaryBlue
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            // Sección "LO QUE VAS A NECESITAR" (Lista de herramientas antes de comenzar)
+            Text(
+                text = "LO QUE VAS A NECESITAR",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextSecondary,
+                letterSpacing = 1.sp
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                uiState.tools.forEach { toolName ->
+                    StructuralToolChip(
+                        label = toolName,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Botón inferior (PrimaryBlue, ancho completo): "Iniciar guía paso a paso" -> navega a repair_step
+            // Botón Principal: "Comenzar guía"
             Button(
                 onClick = {
                     guideViewModel.resetSteps()
@@ -258,54 +296,27 @@ fun GuideDetailScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(48.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryBlue,
                     contentColor = Color.White
                 ),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text(
-                    text = "Iniciar guía paso a paso",
+                    text = "Comenzar guía",
                     color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun MetadataChipCard(
-    icon: ImageVector,
-    label: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceDark)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = PrimaryBlue,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = label,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = TextSecondary
-            )
         }
     }
 }
@@ -317,24 +328,31 @@ private fun StructuralToolChip(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         color = SurfaceDark,
-        border = BorderStroke(1.dp, TextSecondary.copy(alpha = 0.2f))
+        border = BorderStroke(1.dp, BorderDark)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Build,
-                contentDescription = null,
-                tint = PrimaryBlue,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .background(BackgroundDark, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Build,
+                    contentDescription = null,
+                    tint = PrimaryBlue,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = label,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = TextPrimary
             )

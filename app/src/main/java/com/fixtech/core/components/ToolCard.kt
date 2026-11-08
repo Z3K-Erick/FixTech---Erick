@@ -1,5 +1,6 @@
 package com.fixtech.core.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fixtech.core.theme.BorderDark
 import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
@@ -39,7 +40,8 @@ fun ToolCard(
 ) {
     Card(
         modifier = modifier.width(130.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, BorderDark),
         colors = CardDefaults.cardColors(
             containerColor = SurfaceDark
         )
@@ -52,7 +54,7 @@ fun ToolCard(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .background(PrimaryBlue.copy(alpha = 0.15f), shape = CircleShape),
+                    .background(PrimaryBlue.copy(alpha = 0.15f), shape = RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

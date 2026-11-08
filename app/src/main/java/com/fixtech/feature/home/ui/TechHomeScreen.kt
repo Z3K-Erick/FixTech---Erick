@@ -3,7 +3,6 @@ package com.fixtech.feature.home.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +22,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.DesktopWindows
+import androidx.compose.material.icons.filled.LaptopMac
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,32 +43,41 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fixtech.core.components.FixTechSegmentedControl
 import com.fixtech.core.components.FixTechTabs
 import com.fixtech.core.theme.BackgroundDark
+import com.fixtech.core.theme.BorderDark
 import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SurfaceDark
 import com.fixtech.core.theme.TextPrimary
 import com.fixtech.core.theme.TextSecondary
+import com.fixtech.feature.guide.viewmodel.GuideViewModel
 import com.fixtech.feature.home.viewmodel.HomeViewModel
+import com.fixtech.feature.home.viewmodel.UserDeviceItem
 import com.fixtech.feature.profile.ui.TechProfileContent
 import com.fixtech.feature.profile.viewmodel.ProfileViewModel
 
 @Composable
 fun TechHomeScreen(
     onNavigateBack: () -> Unit = {},
+    onNavigateToAddDevice: () -> Unit = {},
     onNavigateToGuideDetail: () -> Unit = {},
     onNavigateToCreateGuide: () -> Unit = {},
     onNavigateToTechProfile: () -> Unit = {},
     onLogout: () -> Unit = {},
     homeViewModel: HomeViewModel = viewModel(),
+    guideViewModel: GuideViewModel = viewModel(),
     profileViewModel: ProfileViewModel = viewModel()
 ) {
     val homeState by homeViewModel.uiState.collectAsState()
+    val guideState by guideViewModel.uiState.collectAsState()
     val profileState by profileViewModel.uiState.collectAsState()
+
+    val techDevices = homeState.catalogDevices.filter { it.authorId == "admin-current" }
 
     Scaffold(
         containerColor = BackgroundDark
@@ -80,41 +90,38 @@ fun TechHomeScreen(
                 .padding(horizontal = 20.dp)
                 .padding(top = 16.dp, bottom = 32.dp)
         ) {
-            // Barra superior: Flecha de regresar + FixTech Admin
+            // Barra superior: Flecha atrás a la izquierda + "FixTech Admin" (SIN ícono derecho de cerrar sesión)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = TextPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "FixTech ",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                    Text(
-                        text = "Admin",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBlue
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Regresar",
+                        tint = TextPrimary
                     )
                 }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "FixTech ",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Text(
+                    text = "Admin",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryBlue
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // FixTechSegmentedControl compacto con las 3 pestañas exactas: "Mis Equipos" | "Guías" | "Perfil"
+            // FixTechSegmentedControl con las 3 pestañas exactas del técnico: "Mis Equipos" | "Guías" | "Perfil"
             FixTechSegmentedControl(
                 items = FixTechTabs.TechTabs,
                 selectedIndex = homeState.techSelectedTab,
@@ -131,7 +138,13 @@ fun TechHomeScreen(
                     onSearchQueryChanged = homeViewModel::onTechSearchQueryChanged,
                     selectedFilter = homeState.techSelectedFilter,
                     onFilterSelected = homeViewModel::onTechFilterSelected,
-                    onNavigateToGuideDetail = onNavigateToGuideDetail
+                    devices = techDevices,
+                    guidesCountForDevice = { devId -> guideState.guides.count { it.deviceId == devId } },
+                    onNavigateToAddDevice = onNavigateToAddDevice,
+                    onSelectDevice = { device ->
+                        homeViewModel.selectDevice(device.id)
+                        onNavigateToGuideDetail()
+                    }
                 )
 
                 1 -> TechGuidesTabContent(
@@ -156,12 +169,28 @@ private fun TechEquipmentTabContent(
     onSearchQueryChanged: (String) -> Unit,
     selectedFilter: String,
     onFilterSelected: (String) -> Unit,
-    onNavigateToGuideDetail: () -> Unit
+    devices: List<UserDeviceItem>,
+    guidesCountForDevice: (String) -> Int,
+    onNavigateToAddDevice: () -> Unit,
+    onSelectDevice: (UserDeviceItem) -> Unit
 ) {
     val filters = listOf("Todos", "Laptop", "PC Escritorio")
 
+    val filteredDevices = devices.filter { dev ->
+        val matchesFilter = when (selectedFilter) {
+            "Laptop" -> dev.category.equals("Laptop", ignoreCase = true)
+            "PC Escritorio" -> dev.category.contains("PC", ignoreCase = true)
+            else -> true
+        }
+        val q = searchQuery.trim()
+        val matchesSearch = q.isEmpty() ||
+            dev.name.contains(q, ignoreCase = true) ||
+            dev.model.contains(q, ignoreCase = true)
+        matchesFilter && matchesSearch
+    }
+
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Buscador superior redondeado con ícono de lupa
+        // Buscador superior con shape = RoundedCornerShape(10.dp)
         OutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChanged,
@@ -181,66 +210,91 @@ private fun TechEquipmentTabContent(
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = SurfaceDark,
                 unfocusedContainerColor = SurfaceDark,
                 focusedTextColor = TextPrimary,
                 unfocusedTextColor = TextPrimary,
                 focusedBorderColor = PrimaryBlue,
-                unfocusedBorderColor = SurfaceDark
+                unfocusedBorderColor = BorderDark
             )
         )
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Filtros horizontales tipo chip ("Todos", "Laptop", "PC Escritorio")
+        // Chips / Selectores con RoundedCornerShape(8.dp), height(38.dp) y Modifier.weight(1f)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             filters.forEach { filter ->
                 val isSelected = filter == selectedFilter
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(38.dp)
+                        .clickable { onFilterSelected(filter) },
+                    shape = RoundedCornerShape(8.dp),
                     color = if (isSelected) PrimaryBlue else SurfaceDark,
-                    border = if (isSelected) null else BorderStroke(1.dp, TextSecondary.copy(alpha = 0.25f)),
-                    modifier = Modifier.clickable { onFilterSelected(filter) }
+                    border = if (isSelected) null else BorderStroke(1.dp, BorderDark)
                 ) {
-                    Text(
-                        text = filter,
-                        fontSize = 13.sp,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                        color = if (isSelected) Color.White else TextSecondary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = filter,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                            color = if (isSelected) Color.White else TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Tarjeta estructural 1
-        StructuralGuideCard(
-            badgeText = "Laptop",
-            title = "Mantenimiento Preventivo",
-            subtitle = "Guía estructural de hardware • Paso a paso",
-            onClick = onNavigateToGuideDetail
-        )
+        // Botón para que el Técnico registre un nuevo dispositivo (AddDeviceScreen)
+        Button(
+            onClick = onNavigateToAddDevice,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PrimaryBlue,
+                contentColor = Color.White
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Agregar Dispositivo",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+        }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Tarjeta estructural 2
-        StructuralGuideCard(
-            badgeText = "PC Escritorio",
-            title = "Diagnóstico de Hardware",
-            subtitle = "Inspección y revisión de componentes base",
-            onClick = onNavigateToGuideDetail
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
+        filteredDevices.forEach { device ->
+            val count = guidesCountForDevice(device.id)
+            val isPc = device.category.contains("PC", ignoreCase = true)
+            StructuralGuideCard(
+                badgeText = if (isPc) "PC Escritorio" else "Laptop",
+                title = "${device.name} ${device.model}",
+                subtitle = "${device.processor} • ${device.ram} • $count ${if (count == 1) "Guía" else "Guías"}",
+                isPc = isPc,
+                onClick = { onSelectDevice(device) }
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+        }
     }
 }
 
@@ -249,17 +303,19 @@ private fun StructuralGuideCard(
     badgeText: String,
     title: String,
     subtitle: String,
+    isPc: Boolean = false,
     onClick: () -> Unit
 ) {
+    val icon = if (isPc) Icons.Default.DesktopWindows else Icons.Default.LaptopMac
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+        border = BorderStroke(1.dp, BorderDark)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Placeholder de imagen superior con badge en esquina
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -268,7 +324,7 @@ private fun StructuralGuideCard(
                     .padding(12.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Computer,
+                    imageVector = icon,
                     contentDescription = null,
                     tint = TextSecondary.copy(alpha = 0.4f),
                     modifier = Modifier
@@ -277,8 +333,9 @@ private fun StructuralGuideCard(
                 )
 
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = PrimaryBlue.copy(alpha = 0.2f),
+                    border = BorderStroke(1.dp, BorderDark),
                     modifier = Modifier.align(Alignment.TopStart)
                 ) {
                     Text(
@@ -318,21 +375,22 @@ private fun TechGuidesTabContent(
     onNavigateToCreateGuide: () -> Unit,
     onNavigateToGuideDetail: () -> Unit
 ) {
+    // Pestaña "Guías" del técnico: Sin "Panel de Creación Técnica", solo tarjeta superior del maquetado y botón azul "Subir nueva guía" (con un solo signo +)
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Tarjeta limpia con contenedor de imagen/banner superior (placeholder SurfaceDark de 140.dp)
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onNavigateToGuideDetail() },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+            border = BorderStroke(1.dp, BorderDark)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(140.dp)
-                        .background(SurfaceDark)
+                        .background(BackgroundDark.copy(alpha = 0.65f))
                         .padding(12.dp)
                 ) {
                     Icon(
@@ -345,12 +403,13 @@ private fun TechGuidesTabContent(
                     )
 
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(8.dp),
                         color = PrimaryBlue.copy(alpha = 0.2f),
+                        border = BorderStroke(1.dp, BorderDark),
                         modifier = Modifier.align(Alignment.TopStart)
                     ) {
                         Text(
-                            text = "Guía Técnica",
+                            text = "Laptop",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = PrimaryBlue,
@@ -362,18 +421,17 @@ private fun TechGuidesTabContent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(BackgroundDark.copy(alpha = 0.35f))
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "Mantenimiento Preventivo",
+                        text = "Mejorar RAM o SSD",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Guía estructural publicada • Paso a paso",
+                        text = "Lenovo LOQ 15IRH8 • Nivel Intermedio • 3 pasos",
                         fontSize = 13.sp,
                         color = TextSecondary
                     )
@@ -383,13 +441,13 @@ private fun TechGuidesTabContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Botón limpio con un solo signo + que navegue a create_guide
+        // Botón azul "Subir nueva guía" (con un solo signo +)
         Button(
             onClick = onNavigateToCreateGuide,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp),
+                .height(48.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = PrimaryBlue,
                 contentColor = Color.White
@@ -398,13 +456,14 @@ private fun TechGuidesTabContent(
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Crear nueva guía",
+                text = "Subir nueva guía",
                 fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
             )
         }
     }

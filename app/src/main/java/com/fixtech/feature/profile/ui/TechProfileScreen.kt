@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,7 +46,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fixtech.core.components.FixTechSegmentedControl
 import com.fixtech.core.components.FixTechTabs
 import com.fixtech.core.theme.BackgroundDark
-import com.fixtech.core.theme.ErrorRed
+import com.fixtech.core.theme.BorderDark
+import com.fixtech.core.theme.DangerBorder
+import com.fixtech.core.theme.DangerRed
 import com.fixtech.core.theme.PrimaryBlue
 import com.fixtech.core.theme.SuccessGreen
 import com.fixtech.core.theme.SurfaceDark
@@ -75,36 +78,33 @@ fun TechProfileScreen(
                 .padding(top = 16.dp, bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header "FixTech Admin" con flecha de regresar arriba
+            // Barra superior: Botón de flecha atrás a la izquierda + "FixTech Admin" (SIN ícono derecho de cerrar sesión)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = TextPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "FixTech ",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                    Text(
-                        text = "Admin",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBlue
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Regresar",
+                        tint = TextPrimary
                     )
                 }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "FixTech ",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Text(
+                    text = "Admin",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryBlue
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -146,7 +146,7 @@ fun TechProfileContent(
             .padding(bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Avatar con inicial, nombre estructural, subtítulo "Rol" y un badge redondeado "Técnico Especialista"
+        // 1) Avatar circular ("E" / "T"), Nombre, subtítulo "Rol", badge "Técnico Especialista"
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -181,8 +181,9 @@ fun TechProfileContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = PrimaryBlue.copy(alpha = 0.16f)
+            shape = RoundedCornerShape(8.dp),
+            color = PrimaryBlue.copy(alpha = 0.16f),
+            border = BorderStroke(1.dp, BorderDark)
         ) {
             Text(
                 text = uiState.techBadge,
@@ -195,16 +196,16 @@ fun TechProfileContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Row con 3 tarjetas contadoras: "Mis Guías" (azul), "En curso" (verde), "Aprobadas" (azul)
+        // 2) Fila de 3 tarjetas contadoras ("Mis Guías", "En curso", "Aprobadas")
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Tarjeta 1: Mis Guías (azul)
             Card(
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+                border = BorderStroke(1.dp, BorderDark)
             ) {
                 Column(
                     modifier = Modifier
@@ -228,11 +229,11 @@ fun TechProfileContent(
                 }
             }
 
-            // Tarjeta 2: En curso (verde)
             Card(
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+                border = BorderStroke(1.dp, BorderDark)
             ) {
                 Column(
                     modifier = Modifier
@@ -256,11 +257,11 @@ fun TechProfileContent(
                 }
             }
 
-            // Tarjeta 3: Aprobadas (azul)
             Card(
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+                border = BorderStroke(1.dp, BorderDark)
             ) {
                 Column(
                     modifier = Modifier
@@ -287,7 +288,7 @@ fun TechProfileContent(
 
         Spacer(modifier = Modifier.height(26.dp))
 
-        // Sección PREFERENCIAS
+        // 3) Sección "PREFERENCIAS" -> Tarjeta "Notificaciones" con Switch
         Text(
             text = "PREFERENCIAS",
             fontSize = 12.sp,
@@ -301,8 +302,9 @@ fun TechProfileContent(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+            border = BorderStroke(1.dp, BorderDark)
         ) {
             Row(
                 modifier = Modifier
@@ -340,7 +342,7 @@ fun TechProfileContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Sección CERTIFICACIÓN (antes del botón de cerrar sesión)
+        // 4) Sección "CERTIFICACIÓN" (VA AQUÍ, ANTES DE CERRAR SESIÓN)
         Text(
             text = "CERTIFICACIÓN",
             fontSize = 12.sp,
@@ -354,8 +356,9 @@ fun TechProfileContent(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceDark)
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+            border = BorderStroke(1.dp, BorderDark)
         ) {
             Row(
                 modifier = Modifier
@@ -383,7 +386,8 @@ fun TechProfileContent(
 
                 Button(
                     onClick = onUploadCertificate,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PrimaryBlue,
                         contentColor = Color.White
@@ -391,8 +395,9 @@ fun TechProfileContent(
                 ) {
                     Text(
                         text = "Subir archivo",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
                     )
                 }
             }
@@ -400,22 +405,23 @@ fun TechProfileContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón delineado rojo "Cerrar Sesión" al FINAL ABSOLUTO de la pantalla
+        // 5) Botón "Cerrar Sesión": Va hasta el FINAL ABSOLUTO de la pantalla
         OutlinedButton(
             onClick = onLogout,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.5f)),
+                .height(48.dp),
+            shape = RoundedCornerShape(10.dp),
+            border = BorderStroke(1.dp, DangerBorder),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = ErrorRed
+                containerColor = SurfaceDark,
+                contentColor = DangerRed
             )
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                 contentDescription = "Cerrar Sesión",
-                tint = ErrorRed,
+                tint = DangerRed,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -423,7 +429,7 @@ fun TechProfileContent(
                 text = "Cerrar Sesión",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = ErrorRed
+                color = DangerRed
             )
         }
     }
