@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
+        android:name=".FixTechApp"
         android:allowBackup="true"
         android:icon="@android:drawable/sym_def_app_icon"
         android:label="FixTech"
@@ -9,7 +10,7 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
         <activity
-            android:name=".core.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:theme="@android:style/Theme.Material.NoActionBar">
             <intent-filter>

@@ -2,6 +2,7 @@ plugins {
     id("com.android.application") version "8.5.0"
     id("org.jetbrains.kotlin.android") version "2.0.0"
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    id("com.google.devtools.ksp") version "2.0.0-1.0.24"
 }
 
 android {
@@ -46,8 +47,15 @@ dependencies {
     // Core & Lifecycle
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.activity:activity-compose:1.9.3")
+
+    // Room Local Persistence
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
 
     // Jetpack Compose BOM & UI Fundamentals
     val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
