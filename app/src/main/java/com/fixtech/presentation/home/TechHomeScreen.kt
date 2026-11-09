@@ -381,6 +381,7 @@ fun TechHomeScreen(
                 2 -> TechProfileContent(
                     uiState = profileState,
                     onToggleNotifications = profileViewModel::toggleTechNotifications,
+                    onUpdateAvatar = profileViewModel::updateTechAvatar,
                     onUploadCertificate = profileViewModel::uploadCertificate,
                     onAddCertificate = { title, institution, fileName, localFilePath, mimeType, onSuccess ->
                         profileViewModel.addTechCertificate(
@@ -394,7 +395,10 @@ fun TechHomeScreen(
                     },
                     onDeleteCertificate = profileViewModel::deleteTechCertificate,
                     onDismissCertNotice = profileViewModel::dismissCertNotice,
-                    onLogout = onLogout
+                    onLogout = {
+                        profileViewModel.clearSession()
+                        onLogout()
+                    }
                 )
             }
         }

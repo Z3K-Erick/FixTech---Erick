@@ -23,6 +23,9 @@ interface UserDao {
     @Query("UPDATE users SET notificationsEnabled = :enabled WHERE id = :userId")
     suspend fun updateNotifications(userId: String, enabled: Boolean)
 
+    @Query("UPDATE users SET avatarUri = :avatarUri WHERE id = :userId")
+    suspend fun updateUserAvatar(userId: String, avatarUri: String?)
+
     @Query("SELECT * FROM certificates")
     fun observeAllCertificates(): Flow<List<CertificateEntity>>
 

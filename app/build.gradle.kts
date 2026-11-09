@@ -58,6 +58,9 @@ dependencies {
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
 
+    // Jetpack DataStore Preferences
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
     // Jetpack Compose BOM & UI Fundamentals
     val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
     implementation(composeBom)

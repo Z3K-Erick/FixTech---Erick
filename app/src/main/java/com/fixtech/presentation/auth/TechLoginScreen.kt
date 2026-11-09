@@ -222,6 +222,7 @@ fun TechLoginScreen(
                                 subtitle = "Coloca tu huella digital para ingresar",
                                 onSuccess = {
                                     biometricError = null
+                                    authViewModel.onBiometricLoginSuccess(isTech = true)
                                     onNavigateToTechHome()
                                 },
                                 onError = { error ->

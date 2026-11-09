@@ -2,7 +2,11 @@ package com.fixtech.presentation.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fixtech.core.common.Constants
+import com.fixtech.data.local.SessionManager
+import com.fixtech.data.local.SessionState
 import com.fixtech.domain.repository.AuthRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,11 +14,49 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val sessionManager: SessionManager? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    val sessionFlow: Flow<SessionState>?
+        get() = sessionManager?.sessionFlow
+
+    suspend fun restoreSessionFromDataStore(session: SessionState) {
+        if (session.isLoggedIn) {
+            authRepository.restoreSession(
+                userId = session.userId,
+                name = session.userName,
+                role = session.role
+            )
+        }
+    }
+
+    fun onBiometricLoginSuccess(isTech: Boolean) {
+        viewModelScope.launch {
+            if (isTech) {
+                val currentTech = authRepository.currentTech.value
+                val emailOrId = currentTech.email.ifBlank { Constants.DEFAULT_TECH_ID }
+                val tech = authRepository.loginTech(emailOrId, "biometric")
+                sessionManager?.saveSession(
+                    userId = if (tech.email.isNotBlank()) "tech_${tech.email.lowercase()}" else Constants.DEFAULT_TECH_ID,
+                    name = tech.fullName,
+                    role = "TECH"
+                )
+            } else {
+                val currentUser = authRepository.currentUser.value
+                val emailOrId = currentUser.email.ifBlank { currentUser.id.removePrefix("user_") }
+                val user = authRepository.loginUser(emailOrId, "biometric")
+                sessionManager?.saveSession(
+                    userId = user.id,
+                    name = user.fullName,
+                    role = "USER"
+                )
+            }
+        }
+    }
 
     // User Login
     fun onEmailChanged(email: String) {
@@ -51,7 +93,12 @@ class AuthViewModel(
             val emailToLogin = current.email
             val passwordToLogin = current.password
             viewModelScope.launch {
-                authRepository.loginUser(emailToLogin, passwordToLogin)
+                val user = authRepository.loginUser(emailToLogin, passwordToLogin)
+                sessionManager?.saveSession(
+                    userId = user.id,
+                    name = user.fullName,
+                    role = "USER"
+                )
             }
             _uiState.update {
                 it.copy(email = "", password = "", isEmailError = false, isPasswordError = false, errorMessage = null)
@@ -108,7 +155,12 @@ class AuthViewModel(
             val email = current.registerEmail
             val password = current.registerPassword
             viewModelScope.launch {
-                authRepository.registerUser(fullName, email, password)
+                val user = authRepository.registerUser(fullName, email, password)
+                sessionManager?.saveSession(
+                    userId = user.id,
+                    name = user.fullName,
+                    role = "USER"
+                )
             }
             _uiState.update {
                 it.copy(
@@ -160,7 +212,17 @@ class AuthViewModel(
             val email = current.techEmail
             val password = current.techPassword
             viewModelScope.launch {
-                authRepository.loginTech(email, password)
+                val tech = authRepository.loginTech(email, password)
+                val techSessionId = if (tech.email.isNotBlank()) {
+                    "tech_${tech.email.lowercase()}"
+                } else {
+                    Constants.DEFAULT_TECH_ID
+                }
+                sessionManager?.saveSession(
+                    userId = techSessionId,
+                    name = tech.fullName,
+                    role = "TECH"
+                )
             }
             _uiState.update {
                 it.copy(techEmail = "", techPassword = "", isTechEmailError = false, isTechPasswordError = false, errorMessage = null)
@@ -230,7 +292,17 @@ class AuthViewModel(
             val code = current.workshopCode
             val password = current.techRegisterPassword
             viewModelScope.launch {
-                authRepository.registerTech(fullName, email, code, password)
+                val tech = authRepository.registerTech(fullName, email, code, password)
+                val techSessionId = if (tech.email.isNotBlank()) {
+                    "tech_${tech.email.lowercase()}"
+                } else {
+                    Constants.DEFAULT_TECH_ID
+                }
+                sessionManager?.saveSession(
+                    userId = techSessionId,
+                    name = tech.fullName,
+                    role = "TECH"
+                )
             }
             _uiState.update {
                 it.copy(

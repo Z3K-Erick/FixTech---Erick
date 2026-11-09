@@ -1,6 +1,5 @@
 package com.fixtech.presentation.profile
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,8 +43,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.fixtech.core.ui.theme.BackgroundDark
 import com.fixtech.core.ui.theme.BorderDark
 import com.fixtech.core.ui.theme.DangerRed
@@ -91,7 +94,17 @@ fun PublicTechProfileScreen(
     val techId = techIdArg?.takeIf { it.isNotBlank() } ?: homeState.selectedPublicTechId
     val techDevices = homeState.catalogDevices.filter { it.authorId == techId }
     val techGuides = guideState.guides.filter { it.authorId == techId }
-    val techCertificates = homeState.techCertificatesByAdmin[techId] ?: emptyList()
+
+    // Consulta en Room de los certificados reales asociados a este technicianId
+    val roomCertificates by remember(techId) {
+        profileViewModel.observeCertificatesForTech(techId)
+    }.collectAsStateWithLifecycle(initialValue = homeState.techCertificatesByAdmin[techId] ?: emptyList())
+
+    val techCertificates = if (roomCertificates.isNotEmpty()) {
+        roomCertificates
+    } else {
+        homeState.techCertificatesByAdmin[techId] ?: emptyList()
+    }
 
     val techName = when (techId) {
         "admin-current" -> profileState.techName.ifBlank { "Carlos M." }
@@ -100,6 +113,8 @@ fun PublicTechProfileScreen(
             ?: techGuides.firstOrNull()?.author
             ?: "Técnico FixTech"
     }
+
+    val techAvatarUri = if (techId == "admin-current") profileState.techAvatarUri else null
 
     val techSpecialty = if (techId == "admin-other") {
         "Especialista en Diagnóstico de Laptops y GPU"
@@ -160,20 +175,33 @@ fun PublicTechProfileScreen(
                 )
             }
 
-            // Avatar, nombre y especialidad del técnico
-            Box(
-                modifier = Modifier
-                    .size(76.dp)
-                    .background(PrimaryBlue.copy(alpha = 0.2f), shape = CircleShape)
-                    .border(2.dp, PrimaryBlue.copy(alpha = 0.5f), shape = CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = initial,
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryBlue
+            // Avatar circular (AsyncImage o inicial), nombre y especialidad del técnico
+            if (!techAvatarUri.isNullOrBlank()) {
+                AsyncImage(
+                    model = techAvatarUri,
+                    contentDescription = "Foto de perfil de $techName",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(76.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, PrimaryBlue.copy(alpha = 0.5f), CircleShape)
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(76.dp)
+                        .clip(CircleShape)
+                        .background(PrimaryBlue.copy(alpha = 0.2f), shape = CircleShape)
+                        .border(2.dp, PrimaryBlue.copy(alpha = 0.5f), shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = initial,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlue
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -291,19 +319,11 @@ fun PublicTechProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                if (cert.localFilePath.isNotBlank()) {
-                                    CertificateDocumentHelper.openCertificate(
-                                        context = context,
-                                        localFilePath = cert.localFilePath,
-                                        mimeType = cert.mimeType
-                                    )
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        "Certificado verificado: ${cert.fileName}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
+                                CertificateDocumentHelper.openCertificate(
+                                    context = context,
+                                    localFilePath = cert.localFilePath.ifBlank { cert.fileName },
+                                    mimeType = cert.mimeType
+                                )
                             },
                         shape = RoundedCornerShape(10.dp),
                         colors = CardDefaults.cardColors(containerColor = SurfaceDark),
@@ -365,7 +385,7 @@ fun PublicTechProfileScreen(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = if (cert.localFilePath.isNotBlank()) "Abrir" else "Verificado",
+                                        text = "Abrir",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = PrimaryBlue

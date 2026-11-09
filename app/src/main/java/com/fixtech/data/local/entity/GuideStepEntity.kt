@@ -16,5 +16,7 @@ data class GuideStepEntity(
     val requiresConfirmation: Boolean,
     val confirmationText: String,
     val alertTitle: String = "Precaución",
-    val imageUrl: String = ""
+    val imageUrl: String = "",
+    val imageUri: String? = null,
+    val resourceUrl: String? = null
 )

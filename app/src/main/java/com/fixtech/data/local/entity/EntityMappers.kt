@@ -43,35 +43,45 @@ fun Device.toEntity(): DeviceEntity = DeviceEntity(
     processor = processor
 )
 
-fun GuideStepEntity.toDomain(): GuideStep = GuideStep(
-    id = id,
-    guideId = guideId,
-    stepNumber = stepNumber,
-    title = title,
-    description = description,
-    hasAlert = hasAlert,
-    alertType = alertType,
-    alertTitle = alertTitle,
-    alertMessage = alertMessage,
-    requiresConfirmation = requiresConfirmation,
-    confirmationText = confirmationText,
-    imageUrl = imageUrl
-)
+fun GuideStepEntity.toDomain(): GuideStep {
+    val resolvedImage = imageUri?.takeIf { it.isNotBlank() } ?: imageUrl
+    return GuideStep(
+        id = id,
+        guideId = guideId,
+        stepNumber = stepNumber,
+        title = title,
+        description = description,
+        hasAlert = hasAlert,
+        alertType = alertType,
+        alertTitle = alertTitle,
+        alertMessage = alertMessage,
+        requiresConfirmation = requiresConfirmation,
+        confirmationText = confirmationText,
+        imageUrl = resolvedImage,
+        imageUri = resolvedImage.ifBlank { null },
+        resourceUrl = resourceUrl?.takeIf { it.isNotBlank() }
+    )
+}
 
-fun GuideStep.toEntity(parentGuideId: String): GuideStepEntity = GuideStepEntity(
-    id = id.ifBlank { "${parentGuideId}_step_$stepNumber" },
-    guideId = parentGuideId,
-    stepNumber = stepNumber,
-    title = title,
-    description = description,
-    hasAlert = hasAlert,
-    alertType = alertType,
-    alertMessage = alertMessage,
-    requiresConfirmation = requiresConfirmation,
-    confirmationText = confirmationText,
-    alertTitle = alertTitle,
-    imageUrl = imageUrl
-)
+fun GuideStep.toEntity(parentGuideId: String): GuideStepEntity {
+    val resolvedImage = imageUri?.takeIf { it.isNotBlank() } ?: imageUrl
+    return GuideStepEntity(
+        id = id.ifBlank { "${parentGuideId}_step_$stepNumber" },
+        guideId = parentGuideId,
+        stepNumber = stepNumber,
+        title = title,
+        description = description,
+        hasAlert = hasAlert,
+        alertType = alertType,
+        alertMessage = alertMessage,
+        requiresConfirmation = requiresConfirmation,
+        confirmationText = confirmationText,
+        alertTitle = alertTitle,
+        imageUrl = resolvedImage,
+        imageUri = resolvedImage.ifBlank { null },
+        resourceUrl = resourceUrl?.takeIf { it.isNotBlank() }
+    )
+}
 
 fun GuideEntity.toDomain(
     steps: List<GuideStep> = emptyList(),
@@ -129,7 +139,8 @@ fun UserEntity.toDomain(): User = User(
     email = email,
     role = role,
     workshopCode = workshopCode,
-    notificationsEnabled = notificationsEnabled
+    notificationsEnabled = notificationsEnabled,
+    avatarUri = avatarUri
 )
 
 fun User.toEntity(): UserEntity = UserEntity(
@@ -138,7 +149,8 @@ fun User.toEntity(): UserEntity = UserEntity(
     email = email,
     role = role,
     workshopCode = workshopCode,
-    notificationsEnabled = notificationsEnabled
+    notificationsEnabled = notificationsEnabled,
+    avatarUri = avatarUri
 )
 
 fun CertificateEntity.toDomain(): Certificate = Certificate(

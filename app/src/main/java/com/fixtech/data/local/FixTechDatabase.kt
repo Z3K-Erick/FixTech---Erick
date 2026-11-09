@@ -26,7 +26,7 @@ import com.fixtech.data.local.entity.UserFavoriteGuideEntity
         UserEntity::class,
         CertificateEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class FixTechDatabase : RoomDatabase() {

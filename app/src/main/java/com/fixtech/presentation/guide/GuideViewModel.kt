@@ -49,6 +49,7 @@ class GuideViewModel(
                             val currentStepIndex = (current.currentStep - 1).coerceIn(0, (selected.steps.size - 1).coerceAtLeast(0))
                             val step = selected.steps.getOrNull(currentStepIndex)
                             val total = selected.steps.size.coerceAtLeast(1)
+                            val resolvedStepImg = step?.imageUri?.takeIf { it.isNotBlank() } ?: step?.imageUrl.orEmpty()
                             current.copy(
                                 guides = allGuides,
                                 title = selected.title,
@@ -63,7 +64,9 @@ class GuideViewModel(
                                 totalSteps = total,
                                 stepTitle = step?.title ?: current.stepTitle,
                                 stepInstruction = step?.instruction ?: current.stepInstruction,
-                                stepImageUrl = step?.imageUrl ?: "",
+                                stepImageUrl = resolvedStepImg,
+                                stepImageUri = resolvedStepImg.ifBlank { null },
+                                stepResourceUrl = step?.resourceUrl?.takeIf { it.isNotBlank() },
                                 stepHasAlert = step?.hasAlert ?: current.stepHasAlert,
                                 stepAlertLevel = step?.alertType ?: current.stepAlertLevel,
                                 cautionTitle = step?.alertTitle ?: current.cautionTitle,
@@ -131,6 +134,7 @@ class GuideViewModel(
             val total = guide.steps.size.coerceAtLeast(1)
             val resolvedDeviceId = deviceId?.takeIf { it.isNotBlank() } ?: current.activeDeviceId.ifBlank { guide.deviceId }
             val isFavInDevice = current.deviceGuides.find { it.id == guide.id }?.isFavorite ?: guide.isFavorite
+            val resolvedStepImg = firstStep.imageUri?.takeIf { it.isNotBlank() } ?: firstStep.imageUrl
             current.copy(
                 activeDeviceId = resolvedDeviceId,
                 selectedGuideId = guide.id,
@@ -148,7 +152,9 @@ class GuideViewModel(
                 totalSteps = total,
                 stepTitle = firstStep.title,
                 stepInstruction = firstStep.instruction,
-                stepImageUrl = firstStep.imageUrl,
+                stepImageUrl = resolvedStepImg,
+                stepImageUri = resolvedStepImg.ifBlank { null },
+                stepResourceUrl = firstStep.resourceUrl?.takeIf { it.isNotBlank() },
                 stepHasAlert = firstStep.hasAlert,
                 stepAlertLevel = firstStep.alertType,
                 cautionTitle = firstStep.alertTitle,
@@ -200,11 +206,14 @@ class GuideViewModel(
             if (current.currentStep < current.totalSteps) {
                 val next = current.currentStep + 1
                 val stepObj = guide.steps.getOrNull(next - 1)
+                val resolvedStepImg = stepObj?.imageUri?.takeIf { it.isNotBlank() } ?: stepObj?.imageUrl.orEmpty()
                 current.copy(
                     currentStep = next,
                     stepTitle = stepObj?.title ?: current.stepTitle,
                     stepInstruction = stepObj?.instruction ?: current.stepInstruction,
-                    stepImageUrl = stepObj?.imageUrl ?: "",
+                    stepImageUrl = resolvedStepImg,
+                    stepImageUri = resolvedStepImg.ifBlank { null },
+                    stepResourceUrl = stepObj?.resourceUrl?.takeIf { it.isNotBlank() },
                     stepHasAlert = stepObj?.hasAlert ?: false,
                     stepAlertLevel = stepObj?.alertType ?: "Advertencia",
                     cautionTitle = stepObj?.alertTitle ?: current.cautionTitle,
@@ -226,11 +235,14 @@ class GuideViewModel(
             if (current.currentStep > 1) {
                 val prev = current.currentStep - 1
                 val stepObj = guide.steps.getOrNull(prev - 1)
+                val resolvedStepImg = stepObj?.imageUri?.takeIf { it.isNotBlank() } ?: stepObj?.imageUrl.orEmpty()
                 current.copy(
                     currentStep = prev,
                     stepTitle = stepObj?.title ?: current.stepTitle,
                     stepInstruction = stepObj?.instruction ?: current.stepInstruction,
-                    stepImageUrl = stepObj?.imageUrl ?: "",
+                    stepImageUrl = resolvedStepImg,
+                    stepImageUri = resolvedStepImg.ifBlank { null },
+                    stepResourceUrl = stepObj?.resourceUrl?.takeIf { it.isNotBlank() },
                     stepHasAlert = stepObj?.hasAlert ?: false,
                     stepAlertLevel = stepObj?.alertType ?: "Advertencia",
                     cautionTitle = stepObj?.alertTitle ?: current.cautionTitle,
@@ -309,11 +321,13 @@ class GuideViewModel(
                     step.alertType.contains("Nota", ignoreCase = true) -> "Información"
                 else -> "Advertencia"
             }
+            val resolvedImage = step.imageUri?.takeIf { it.isNotBlank() } ?: step.imageUrl
             StepFormState(
                 title = step.title,
                 description = step.description,
-                imageUri = step.imageUrl,
-                imageFileName = if (step.imageUrl.isNotBlank()) "imagen_paso_${step.stepNumber}.jpg" else "",
+                imageUri = resolvedImage,
+                imageFileName = if (resolvedImage.isNotBlank()) "imagen_paso_${step.stepNumber}.jpg" else "",
+                resourceUrl = step.resourceUrl.orEmpty(),
                 includeCautionAlert = step.hasAlert,
                 selectedAlertLevel = normalizedAlert,
                 alertText = step.alertMessage,
@@ -370,7 +384,6 @@ class GuideViewModel(
     }
 
     fun onFormDeviceSelected(deviceId: String, category: String, modelSpec: String) {
-        // Permanece bloqueado si se está editando una guía existente
         if (_uiState.value.editingGuideId != null) return
         _uiState.update {
             it.copy(
@@ -550,6 +563,18 @@ class GuideViewModel(
         }
     }
 
+    fun onStepResourceUrlChanged(index: Int, resourceUrl: String) {
+        _uiState.update { current ->
+            if (index in current.formSteps.indices) {
+                val updated = current.formSteps.toMutableList()
+                updated[index] = updated[index].copy(resourceUrl = resourceUrl)
+                current.copy(formSteps = updated)
+            } else {
+                current
+            }
+        }
+    }
+
     fun onStepCautionToggled(index: Int, enabled: Boolean) {
         _uiState.update { current ->
             if (index in current.formSteps.indices) {
@@ -678,6 +703,8 @@ class GuideViewModel(
                     s.selectedAlertLevel.contains("Nota", ignoreCase = true) -> "Información"
                 else -> "Advertencia"
             }
+            val cleanedImageUri = s.imageUri.trim()
+            val cleanedResourceUrl = s.resourceUrl.trim().ifEmpty { null }
             GuideStep(
                 id = "${targetGuideId}_step_${idx + 1}",
                 guideId = targetGuideId,
@@ -694,7 +721,9 @@ class GuideViewModel(
                 },
                 requiresConfirmation = confirmEnabled,
                 confirmationText = confirmLabel,
-                imageUrl = s.imageUri
+                imageUrl = cleanedImageUri,
+                imageUri = cleanedImageUri.ifBlank { null },
+                resourceUrl = cleanedResourceUrl
             )
         }
 

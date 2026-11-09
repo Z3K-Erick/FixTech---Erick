@@ -48,9 +48,20 @@ fun AppNavGraph() {
         NavHost(navController = navController, startDestination = Routes.Splash.route) {
             composable(Routes.Splash.route) {
                 SplashScreen(
+                    authViewModel = authViewModel,
                     onNavigateToLogin = {
                         navController.navigate(Routes.Login.route) {
                             popUpTo(Routes.Splash.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToHome = {
+                        navController.navigate(Routes.Home.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onNavigateToTechHome = {
+                        navController.navigate(Routes.TechHome.route) {
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 )
@@ -150,6 +161,7 @@ fun AppNavGraph() {
                         navController.navigate(Routes.Profile.route)
                     },
                     onLogout = {
+                        profileViewModel.clearSession()
                         navController.navigate(Routes.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -163,7 +175,13 @@ fun AppNavGraph() {
                     guideViewModel = guideViewModel,
                     profileViewModel = profileViewModel,
                     onNavigateBack = {
-                        navController.popBackStack()
+                        val popped = navController.popBackStack()
+                        if (!popped) {
+                            profileViewModel.clearSession()
+                            navController.navigate(Routes.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
                     },
                     onNavigateToAddDevice = {
                         navController.navigate(Routes.AddDevice.route)
@@ -181,6 +199,7 @@ fun AppNavGraph() {
                         navController.navigate(Routes.TechProfile.route)
                     },
                     onLogout = {
+                        profileViewModel.clearSession()
                         navController.navigate(Routes.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -255,6 +274,7 @@ fun AppNavGraph() {
                         }
                     },
                     onLogout = {
+                        profileViewModel.clearSession()
                         navController.navigate(Routes.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -272,6 +292,7 @@ fun AppNavGraph() {
                         }
                     },
                     onLogout = {
+                        profileViewModel.clearSession()
                         navController.navigate(Routes.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }

@@ -198,6 +198,7 @@ fun HomeScreen(
                 2 -> UserProfileContent(
                     uiState = profileState,
                     onToggleNotifications = profileViewModel::toggleUserNotifications,
+                    onUpdateAvatar = profileViewModel::updateUserAvatar,
                     onLogout = {
                         profileViewModel.clearSession()
                         onLogout()

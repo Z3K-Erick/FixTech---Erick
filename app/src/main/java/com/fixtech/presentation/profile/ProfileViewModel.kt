@@ -3,10 +3,13 @@ package com.fixtech.presentation.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fixtech.core.common.Constants
+import com.fixtech.data.local.SessionManager
+import com.fixtech.domain.model.Certificate
 import com.fixtech.domain.repository.AuthRepository
 import com.fixtech.domain.repository.DeviceRepository
 import com.fixtech.domain.repository.GuideRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +22,8 @@ import kotlinx.coroutines.launch
 class ProfileViewModel(
     private val authRepository: AuthRepository,
     private val deviceRepository: DeviceRepository,
-    private val guideRepository: GuideRepository
+    private val guideRepository: GuideRepository,
+    private val sessionManager: SessionManager? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -40,13 +44,14 @@ class ProfileViewModel(
                         userName = resolvedName,
                         userEmail = user.email,
                         userInitial = initial,
+                        userAvatarUri = user.avatarUri,
                         userNotificationsEnabled = user.notificationsEnabled
                     )
                 }
             }
         }
 
-        // 2. Técnico actual (Nombre real, correo real, etiqueta "Técnico Administrador")
+        // 2. Técnico actual (Nombre real, correo real, avatar, etiqueta "Técnico Administrador")
         viewModelScope.launch {
             authRepository.currentTech.collect { tech ->
                 val resolvedName = tech.fullName.ifBlank { Constants.DEFAULT_TECH_NAME }
@@ -57,6 +62,7 @@ class ProfileViewModel(
                         techName = resolvedName,
                         techEmail = resolvedEmail,
                         techInitial = initial,
+                        techAvatarUri = tech.avatarUri,
                         techBadge = "Técnico Administrador",
                         techNotificationsEnabled = tech.notificationsEnabled
                     )
@@ -129,6 +135,23 @@ class ProfileViewModel(
                         )
                     }
                 }
+        }
+    }
+
+    fun observeCertificatesForTech(technicianId: String): Flow<List<Certificate>> {
+        val resolvedId = technicianId.ifBlank { Constants.DEFAULT_TECH_ID }
+        return authRepository.observeCertificatesForTech(resolvedId)
+    }
+
+    fun updateUserAvatar(avatarUri: String) {
+        viewModelScope.launch {
+            authRepository.updateUserAvatar(avatarUri)
+        }
+    }
+
+    fun updateTechAvatar(avatarUri: String) {
+        viewModelScope.launch {
+            authRepository.updateTechAvatar(avatarUri)
         }
     }
 
@@ -213,6 +236,7 @@ class ProfileViewModel(
 
     fun clearSession() {
         viewModelScope.launch {
+            sessionManager?.clearSession()
             authRepository.logoutUser()
         }
     }

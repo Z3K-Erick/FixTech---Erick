@@ -10,7 +10,8 @@ data class UserEntity(
     val email: String,
     val role: String = "USER",
     val workshopCode: String = "",
-    val notificationsEnabled: Boolean = true
+    val notificationsEnabled: Boolean = true,
+    val avatarUri: String? = null
 )
 
 @Entity(tableName = "certificates")

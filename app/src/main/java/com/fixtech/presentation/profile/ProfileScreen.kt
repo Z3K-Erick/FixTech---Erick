@@ -1,7 +1,10 @@
 package com.fixtech.presentation.profile
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Fingerprint
-import android.widget.Toast
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,13 +42,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.fixtech.core.ui.components.FixTechSegmentedControl
 import com.fixtech.core.ui.components.FixTechTabs
 import com.fixtech.core.ui.theme.BackgroundDark
@@ -58,6 +64,7 @@ import com.fixtech.core.ui.theme.TextPrimary
 import com.fixtech.core.ui.theme.TextSecondary
 import com.fixtech.di.FixTechViewModelFactory
 import com.fixtech.integration.BiometricAuthHelper
+import com.fixtech.integration.rememberMediaPickerLauncher
 
 @Composable
 fun ProfileScreen(
@@ -119,6 +126,7 @@ fun ProfileScreen(
             UserProfileContent(
                 uiState = uiState,
                 onToggleNotifications = profileViewModel::toggleUserNotifications,
+                onUpdateAvatar = profileViewModel::updateUserAvatar,
                 onLogout = {
                     profileViewModel.clearSession()
                     onLogout()
@@ -132,6 +140,7 @@ fun ProfileScreen(
 fun UserProfileContent(
     uiState: ProfileUiState,
     onToggleNotifications: (Boolean) -> Unit,
+    onUpdateAvatar: (String) -> Unit = {},
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -139,6 +148,18 @@ fun UserProfileContent(
     var isBiometricEnabled by remember {
         mutableStateOf(BiometricAuthHelper.isBiometricEnabled(context, isTech = false))
     }
+
+    val launchAvatarPicker = rememberMediaPickerLauncher(
+        fallbackFileName = "avatar_usuario.jpg",
+        mimeType = "image/*",
+        onPermissionDenied = { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        }
+    ) { _, uriString ->
+        onUpdateAvatar(uriString)
+        Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -161,19 +182,56 @@ fun UserProfileContent(
             )
         }
 
-        // 2) Avatar circular azul con la inicial real del usuario logueado, su nombre, correo y subtítulo "Free"
+        // 2) Avatar circular cliqueable (con foto en AsyncImage o inicial del usuario + indicador de cámara)
         Box(
             modifier = Modifier
-                .size(80.dp)
-                .background(PrimaryBlue, shape = CircleShape),
+                .size(84.dp)
+                .clickable { launchAvatarPicker() },
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = uiState.userInitial,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            if (!uiState.userAvatarUri.isNullOrBlank()) {
+                AsyncImage(
+                    model = uiState.userAvatarUri,
+                    contentDescription = "Foto de perfil de ${uiState.userName}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, PrimaryBlue, CircleShape)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(PrimaryBlue, shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = uiState.userInitial,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(PrimaryBlue, CircleShape)
+                    .border(2.dp, BackgroundDark, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = "Cambiar foto de perfil",
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(14.dp))

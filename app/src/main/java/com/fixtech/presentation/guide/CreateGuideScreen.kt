@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -780,6 +781,7 @@ fun CreateGuideScreen(
                         onStepImageSelected = { fileName, uriString ->
                             guideViewModel.onStepImageSelected(index, fileName, uriString)
                         },
+                        onResourceUrlChanged = { guideViewModel.onStepResourceUrlChanged(index, it) },
                         onPermissionDenied = { msg ->
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar(msg)
@@ -907,6 +909,7 @@ fun StepFormCard(
     onTitleChanged: (String) -> Unit = {},
     onDescriptionChanged: (String) -> Unit = {},
     onStepImageSelected: (fileName: String, uriString: String) -> Unit = { _, _ -> },
+    onResourceUrlChanged: (String) -> Unit = {},
     onPermissionDenied: ((String) -> Unit)? = null,
     onCautionToggled: (Boolean) -> Unit = {},
     onAlertLevelSelected: (String) -> Unit = {},
@@ -1099,6 +1102,28 @@ fun StepFormCard(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Campo opcional de enlace de video o recurso externo
+            OutlinedTextField(
+                value = stepState.resourceUrl,
+                onValueChange = onResourceUrlChanged,
+                label = { Text("Enlace de video o recurso (URL opcional)") },
+                placeholder = { Text("https://youtube.com/... o https://drive.google.com/...", color = TextSecondary) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = null,
+                        tint = PrimaryBlue,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                colors = innerFieldColors
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 

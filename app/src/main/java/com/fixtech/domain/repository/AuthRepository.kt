@@ -16,8 +16,12 @@ interface AuthRepository {
     suspend fun registerUser(fullName: String, email: String, password: String): User
     suspend fun loginTech(email: String, password: String): User
     suspend fun registerTech(fullName: String, email: String, workshopCode: String, password: String): User
+    suspend fun restoreSession(userId: String, name: String, role: String)
+    suspend fun getUserById(userId: String): User?
     suspend fun updateUserNotifications(enabled: Boolean)
     suspend fun updateTechNotifications(enabled: Boolean)
+    suspend fun updateUserAvatar(avatarUri: String?)
+    suspend fun updateTechAvatar(avatarUri: String?)
     suspend fun addCertificate(
         technicianId: String,
         title: String,

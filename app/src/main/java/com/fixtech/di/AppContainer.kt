@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.fixtech.FixTechApp
 import com.fixtech.data.local.FixTechDatabase
+import com.fixtech.data.local.SessionManager
 import com.fixtech.data.repository.AuthRepositoryImpl
 import com.fixtech.data.repository.DeviceRepositoryImpl
 import com.fixtech.data.repository.GuideRepositoryImpl
@@ -19,12 +20,21 @@ import com.fixtech.presentation.profile.ProfileViewModel
 
 class AppContainer(context: Context) {
 
+    private val appContext = context.applicationContext
+
     val database: FixTechDatabase by lazy {
-        FixTechDatabase.getInstance(context)
+        FixTechDatabase.getInstance(appContext)
+    }
+
+    val sessionManager: SessionManager by lazy {
+        SessionManager(appContext)
     }
 
     val authRepository: AuthRepository by lazy {
-        AuthRepositoryImpl(database.userDao())
+        AuthRepositoryImpl(
+            userDao = database.userDao(),
+            sessionManager = sessionManager
+        )
     }
 
     val deviceRepository: DeviceRepository by lazy {
@@ -40,7 +50,7 @@ class AppContainer(context: Context) {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return when {
                 modelClass.isAssignableFrom(AuthViewModel::class.java) -> {
-                    AuthViewModel(authRepository) as T
+                    AuthViewModel(authRepository, sessionManager) as T
                 }
                 modelClass.isAssignableFrom(HomeViewModel::class.java) -> {
                     HomeViewModel(deviceRepository, authRepository) as T
@@ -49,7 +59,7 @@ class AppContainer(context: Context) {
                     GuideViewModel(guideRepository, authRepository) as T
                 }
                 modelClass.isAssignableFrom(ProfileViewModel::class.java) -> {
-                    ProfileViewModel(authRepository, deviceRepository, guideRepository) as T
+                    ProfileViewModel(authRepository, deviceRepository, guideRepository, sessionManager) as T
                 }
                 else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
             }

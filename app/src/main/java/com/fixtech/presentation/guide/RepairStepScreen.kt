@@ -1,5 +1,7 @@
 package com.fixtech.presentation.guide
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,10 +24,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -39,6 +43,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -46,11 +52,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -70,6 +79,7 @@ import com.fixtech.core.ui.theme.TextPrimary
 import com.fixtech.core.ui.theme.TextSecondary
 import com.fixtech.core.ui.theme.WarningAmber
 import com.fixtech.di.FixTechViewModelFactory
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +92,9 @@ fun RepairStepScreen(
     guideViewModel: GuideViewModel = viewModel(factory = FixTechViewModelFactory)
 ) {
     val uiState by guideViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(guideIdArg) {
         if (!guideIdArg.isNullOrBlank() && guideIdArg != uiState.selectedGuideId) {
@@ -105,6 +118,7 @@ fun RepairStepScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -174,6 +188,8 @@ fun RepairStepScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            val activeImageUri = uiState.stepImageUri?.takeIf { it.isNotBlank() } ?: uiState.stepImageUrl
+
             // Contenedor de imagen del paso
             Box(
                 modifier = Modifier
@@ -184,9 +200,9 @@ fun RepairStepScreen(
                     .border(1.dp, BorderDark, RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (uiState.stepImageUrl.isNotBlank()) {
+                if (activeImageUri.isNotBlank()) {
                     AsyncImage(
-                        model = uiState.stepImageUrl,
+                        model = activeImageUri,
                         contentDescription = uiState.stepTitle,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -228,6 +244,88 @@ fun RepairStepScreen(
                 color = TextSecondary,
                 lineHeight = 20.sp
             )
+
+            // Tarjeta/botón para abrir enlace de video o recurso externo si existe
+            val rawResourceUrl = uiState.stepResourceUrl?.trim().orEmpty()
+            if (rawResourceUrl.isNotBlank()) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            try {
+                                val normalizedUrl = if (
+                                    rawResourceUrl.startsWith("http://", ignoreCase = true) ||
+                                    rawResourceUrl.startsWith("https://", ignoreCase = true)
+                                ) {
+                                    rawResourceUrl
+                                } else {
+                                    "https://$rawResourceUrl"
+                                }
+                                val parsedUri = Uri.parse(normalizedUrl)
+                                if (parsedUri.scheme.isNullOrBlank() || parsedUri.host.isNullOrBlank()) {
+                                    throw IllegalArgumentException("Invalid URL")
+                                }
+                                val intent = Intent(Intent.ACTION_VIEW, parsedUri).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("El enlace proporcionado no es válido o no se pudo abrir.")
+                                }
+                            }
+                        },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+                    border = BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.55f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayCircleOutline,
+                                contentDescription = null,
+                                tint = PrimaryBlue,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Ver video o recurso externo",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = rawResourceUrl,
+                                    fontSize = 12.sp,
+                                    color = PrimaryBlue,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = "Abrir enlace externo",
+                            tint = PrimaryBlue,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 

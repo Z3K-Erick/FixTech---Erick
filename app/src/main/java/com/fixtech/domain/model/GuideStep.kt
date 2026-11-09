@@ -12,10 +12,11 @@ data class GuideStep(
     val alertMessage: String = "",
     val requiresConfirmation: Boolean = false,
     val confirmationText: String = "",
-    val imageUrl: String = ""
+    val imageUrl: String = "",
+    val imageUri: String? = imageUrl.ifBlank { null },
+    val resourceUrl: String? = null
 ) {
     val instruction: String get() = description
     val alertLevel: String get() = alertType
     val alertDescription: String get() = alertMessage
-    val imageUri: String get() = imageUrl
 }

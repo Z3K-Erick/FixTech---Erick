@@ -24,12 +24,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -62,6 +65,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -71,6 +75,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.fixtech.core.ui.components.FixTechSegmentedControl
 import com.fixtech.core.ui.components.FixTechTabs
 import com.fixtech.core.ui.theme.BackgroundDark
@@ -88,6 +93,7 @@ import com.fixtech.domain.model.Certificate
 import com.fixtech.integration.BiometricAuthHelper
 import com.fixtech.integration.CertificateDocumentHelper
 import com.fixtech.integration.rememberCertificateDocumentLauncher
+import com.fixtech.integration.rememberMediaPickerLauncher
 
 @Composable
 fun TechProfileScreen(
@@ -157,6 +163,7 @@ fun TechProfileScreen(
             TechProfileContent(
                 uiState = uiState,
                 onToggleNotifications = profileViewModel::toggleTechNotifications,
+                onUpdateAvatar = profileViewModel::updateTechAvatar,
                 onUploadCertificate = profileViewModel::uploadCertificate,
                 onAddCertificate = { title, institution, fileName, localFilePath, mimeType, onSuccess ->
                     profileViewModel.addTechCertificate(
@@ -170,7 +177,10 @@ fun TechProfileScreen(
                 },
                 onDeleteCertificate = profileViewModel::deleteTechCertificate,
                 onDismissCertNotice = profileViewModel::dismissCertNotice,
-                onLogout = onLogout
+                onLogout = {
+                    profileViewModel.clearSession()
+                    onLogout()
+                }
             )
         }
     }
@@ -180,6 +190,7 @@ fun TechProfileScreen(
 fun TechProfileContent(
     uiState: ProfileUiState,
     onToggleNotifications: (Boolean) -> Unit,
+    onUpdateAvatar: (String) -> Unit = {},
     onUploadCertificate: (String) -> Unit = {},
     onAddCertificate: (
         title: String,
@@ -202,11 +213,96 @@ fun TechProfileContent(
         mutableStateOf(BiometricAuthHelper.isBiometricEnabled(context, isTech = true))
     }
     var showCertificatesModal by remember { mutableStateOf(false) }
+    var certificatePendingDeletion by remember { mutableStateOf<Certificate?>(null) }
+
+    val launchAvatarPicker = rememberMediaPickerLauncher(
+        fallbackFileName = "avatar_tecnico.jpg",
+        mimeType = "image/*",
+        onPermissionDenied = { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        }
+    ) { _, uriString ->
+        onUpdateAvatar(uriString)
+        Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
+    }
+
+    // Diálogo de confirmación antes de borrar un certificado
+    certificatePendingDeletion?.let { certToDelete ->
+        AlertDialog(
+            onDismissRequest = { certificatePendingDeletion = null },
+            containerColor = SurfaceDark,
+            shape = RoundedCornerShape(10.dp),
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = DangerRed,
+                    modifier = Modifier.size(28.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "¿Eliminar certificado?",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Eliminar certificado? Esta acción quitará el documento de tu perfil.",
+                    fontSize = 13.sp,
+                    color = TextSecondary,
+                    lineHeight = 18.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteCertificate(certToDelete.id)
+                        Toast.makeText(
+                            context,
+                            "Certificado «${certToDelete.title}» eliminado",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        certificatePendingDeletion = null
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DangerRed,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "Eliminar",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { certificatePendingDeletion = null },
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, BorderDark),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = BackgroundDark,
+                        contentColor = TextPrimary
+                    )
+                ) {
+                    Text(
+                        text = "Cancelar",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        )
+    }
 
     if (showCertificatesModal) {
         TechCertificatesModal(
             techName = uiState.techName,
             techInitial = uiState.techInitial,
+            techAvatarUri = uiState.techAvatarUri,
             certificates = uiState.techCertificates,
             isUploading = uiState.isUploadingCertificate,
             onDismiss = { showCertificatesModal = false },
@@ -219,28 +315,15 @@ fun TechProfileContent(
                     ).show()
                 }
             },
-            onDeleteCertificate = { cert ->
-                onDeleteCertificate(cert.id)
-                Toast.makeText(
-                    context,
-                    "Certificado «${cert.title}» eliminado",
-                    Toast.LENGTH_SHORT
-                ).show()
+            onRequestDeleteCertificate = { cert ->
+                certificatePendingDeletion = cert
             },
             onOpenCertificate = { cert ->
-                if (cert.localFilePath.isNotBlank()) {
-                    CertificateDocumentHelper.openCertificate(
-                        context = context,
-                        localFilePath = cert.localFilePath,
-                        mimeType = cert.mimeType
-                    )
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Documento: ${cert.fileName}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                CertificateDocumentHelper.openCertificate(
+                    context = context,
+                    localFilePath = cert.localFilePath.ifBlank { cert.fileName },
+                    mimeType = cert.mimeType
+                )
             }
         )
     }
@@ -267,20 +350,57 @@ fun TechProfileContent(
             )
         }
 
-        // 1) Avatar circular, Nombre real, Correo real y etiqueta "Técnico Administrador"
+        // 1) Avatar circular cliqueable (AsyncImage o inicial + ícono de cámara), Nombre real, Correo real y etiqueta
         Box(
             modifier = Modifier
-                .size(80.dp)
-                .background(PrimaryBlue.copy(alpha = 0.2f), shape = CircleShape)
-                .border(2.dp, PrimaryBlue.copy(alpha = 0.45f), shape = CircleShape),
+                .size(84.dp)
+                .clickable { launchAvatarPicker() },
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = uiState.techInitial,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = PrimaryBlue
-            )
+            if (!uiState.techAvatarUri.isNullOrBlank()) {
+                AsyncImage(
+                    model = uiState.techAvatarUri,
+                    contentDescription = "Foto de perfil de ${uiState.techName}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, PrimaryBlue.copy(alpha = 0.65f), CircleShape)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(PrimaryBlue.copy(alpha = 0.2f), shape = CircleShape)
+                        .border(2.dp, PrimaryBlue.copy(alpha = 0.45f), shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = uiState.techInitial,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlue
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(PrimaryBlue, CircleShape)
+                    .border(2.dp, BackgroundDark, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = "Cambiar foto de perfil",
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -709,15 +829,11 @@ fun TechProfileContent(
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
                         .clickable {
-                            if (cert.localFilePath.isNotBlank()) {
-                                CertificateDocumentHelper.openCertificate(
-                                    context = context,
-                                    localFilePath = cert.localFilePath,
-                                    mimeType = cert.mimeType
-                                )
-                            } else {
-                                showCertificatesModal = true
-                            }
+                            CertificateDocumentHelper.openCertificate(
+                                context = context,
+                                localFilePath = cert.localFilePath.ifBlank { cert.fileName },
+                                mimeType = cert.mimeType
+                            )
                         },
                     shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(containerColor = SurfaceDark),
@@ -763,12 +879,7 @@ fun TechProfileContent(
                         }
                         IconButton(
                             onClick = {
-                                onDeleteCertificate(cert.id)
-                                Toast.makeText(
-                                    context,
-                                    "Certificado «${cert.title}» eliminado",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                certificatePendingDeletion = cert
                             },
                             modifier = Modifier.size(32.dp)
                         ) {
@@ -821,6 +932,7 @@ fun TechProfileContent(
 private fun TechCertificatesModal(
     techName: String,
     techInitial: String,
+    techAvatarUri: String? = null,
     certificates: List<Certificate>,
     isUploading: Boolean,
     onDismiss: () -> Unit,
@@ -831,7 +943,7 @@ private fun TechCertificatesModal(
         localFilePath: String,
         mimeType: String
     ) -> Unit,
-    onDeleteCertificate: (Certificate) -> Unit,
+    onRequestDeleteCertificate: (Certificate) -> Unit,
     onOpenCertificate: (Certificate) -> Unit
 ) {
     var titleInput by remember { mutableStateOf("") }
@@ -920,19 +1032,31 @@ private fun TechCertificatesModal(
                             .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .background(PrimaryBlue.copy(alpha = 0.2f), CircleShape)
-                                .border(1.dp, PrimaryBlue.copy(alpha = 0.4f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = techInitial,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryBlue
+                        if (!techAvatarUri.isNullOrBlank()) {
+                            AsyncImage(
+                                model = techAvatarUri,
+                                contentDescription = techName,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .border(1.dp, PrimaryBlue.copy(alpha = 0.4f), CircleShape)
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(PrimaryBlue.copy(alpha = 0.2f), CircleShape)
+                                    .border(1.dp, PrimaryBlue.copy(alpha = 0.4f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = techInitial,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryBlue
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -1093,7 +1217,7 @@ private fun TechCertificatesModal(
                                     )
                                 }
                                 IconButton(
-                                    onClick = { onDeleteCertificate(cert) },
+                                    onClick = { onRequestDeleteCertificate(cert) },
                                     modifier = Modifier.size(32.dp)
                                 ) {
                                     Icon(
