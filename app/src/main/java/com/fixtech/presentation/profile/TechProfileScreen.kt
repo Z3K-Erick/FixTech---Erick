@@ -21,6 +21,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Fingerprint
+import android.widget.Toast
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -36,9 +38,13 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fixtech.core.ui.components.FixTechSegmentedControl
 import com.fixtech.core.ui.components.FixTechTabs
+import com.fixtech.integration.BiometricAuthHelper
 import com.fixtech.core.ui.theme.BackgroundDark
 import com.fixtech.core.ui.theme.BorderDark
 import com.fixtech.core.ui.theme.DangerBorder
@@ -141,6 +148,11 @@ fun TechProfileContent(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    var isBiometricEnabled by remember {
+        mutableStateOf(BiometricAuthHelper.isBiometricEnabled(context, isTech = true))
+    }
+
     val launchDocumentPicker = rememberDocumentPickerLauncher(
         fallbackFileName = "certificado_tecnico.pdf"
     ) { pickedFileName, _ ->
@@ -353,6 +365,88 @@ fun TechProfileContent(
                 Switch(
                     checked = uiState.techNotificationsEnabled,
                     onCheckedChange = onToggleNotifications,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = PrimaryBlue,
+                        uncheckedThumbColor = TextSecondary,
+                        uncheckedTrackColor = BackgroundDark
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Tarjeta de Acceso Biométrico
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+            border = BorderStroke(1.dp, BorderDark)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Fingerprint,
+                    contentDescription = "Acceso biométrico",
+                    tint = PrimaryBlue,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Acceso biométrico",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Iniciar sesión con huella digital",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = isBiometricEnabled,
+                    onCheckedChange = { enable ->
+                        if (enable) {
+                            if (!BiometricAuthHelper.canAuthenticate(context)) {
+                                val errorMsg = BiometricAuthHelper.getHardwareErrorMessage(context)
+                                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                isBiometricEnabled = false
+                            } else {
+                                val activity = BiometricAuthHelper.findFragmentActivity(context)
+                                if (activity != null) {
+                                    BiometricAuthHelper.authenticate(
+                                        activity = activity,
+                                        title = "Acceso biométrico",
+                                        subtitle = "Confirma tu huella para activar el acceso",
+                                        onSuccess = {
+                                            BiometricAuthHelper.setBiometricEnabled(context, isTech = true, enabled = true)
+                                            isBiometricEnabled = true
+                                            Toast.makeText(context, "Acceso biométrico activado", Toast.LENGTH_SHORT).show()
+                                        },
+                                        onError = { error ->
+                                            isBiometricEnabled = false
+                                            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                } else {
+                                    Toast.makeText(context, "No se pudo iniciar el servicio biométrico.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        } else {
+                            BiometricAuthHelper.setBiometricEnabled(context, isTech = true, enabled = false)
+                            isBiometricEnabled = false
+                            Toast.makeText(context, "Acceso biométrico desactivado", Toast.LENGTH_SHORT).show()
+                        }
+                    },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = PrimaryBlue,
