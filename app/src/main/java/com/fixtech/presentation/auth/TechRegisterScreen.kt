@@ -127,6 +127,14 @@ fun TechRegisterScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
+            } else if (uiState.verificationInfoMessage != null) {
+                Text(
+                    text = uiState.verificationInfoMessage ?: "",
+                    fontSize = 13.sp,
+                    color = PrimaryBlue,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
             }
 
             // 1. Campo Nombre completo
@@ -184,18 +192,28 @@ fun TechRegisterScreen(
                 Surface(
                     modifier = Modifier
                         .size(48.dp)
-                        .clickable { authViewModel.sendWorkshopVerificationCode() },
+                        .clickable(enabled = !uiState.isSendingCode) {
+                            authViewModel.sendVerificationCode(uiState.techRegisterEmail)
+                        },
                     shape = RoundedCornerShape(10.dp),
                     color = SurfaceDark,
                     border = BorderStroke(1.dp, BorderDark)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Enviar código",
-                            tint = TextPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        if (uiState.isSendingCode) {
+                            CircularProgressIndicator(
+                                color = PrimaryBlue,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "Enviar código",
+                                tint = TextPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }

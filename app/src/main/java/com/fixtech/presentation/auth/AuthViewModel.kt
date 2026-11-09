@@ -3,6 +3,7 @@ package com.fixtech.presentation.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fixtech.core.common.Constants
+import com.fixtech.core.common.Resource
 import com.fixtech.data.local.SessionManager
 import com.fixtech.data.local.SessionState
 import com.fixtech.domain.repository.AuthRepository
@@ -93,12 +94,24 @@ class AuthViewModel(
             val emailToLogin = current.email
             val passwordToLogin = current.password
             viewModelScope.launch {
-                val user = authRepository.loginUser(emailToLogin, passwordToLogin)
-                sessionManager?.saveSession(
-                    userId = user.id,
-                    name = user.fullName,
-                    role = "USER"
-                )
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+                when (val result = authRepository.login(emailToLogin, passwordToLogin, "USER")) {
+                    is Resource.Success -> {
+                        val user = result.data
+                        sessionManager?.saveSession(
+                            userId = user.id,
+                            name = user.fullName,
+                            role = "USER"
+                        )
+                        _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                    }
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = result.message) }
+                    }
+                    is Resource.Loading -> {
+                        _uiState.update { it.copy(isLoading = true) }
+                    }
+                }
             }
             _uiState.update {
                 it.copy(email = "", password = "", isEmailError = false, isPasswordError = false, errorMessage = null)
@@ -155,12 +168,24 @@ class AuthViewModel(
             val email = current.registerEmail
             val password = current.registerPassword
             viewModelScope.launch {
-                val user = authRepository.registerUser(fullName, email, password)
-                sessionManager?.saveSession(
-                    userId = user.id,
-                    name = user.fullName,
-                    role = "USER"
-                )
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+                when (val result = authRepository.register(fullName, email, password, "USER")) {
+                    is Resource.Success -> {
+                        val user = result.data
+                        sessionManager?.saveSession(
+                            userId = user.id,
+                            name = user.fullName,
+                            role = "USER"
+                        )
+                        _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                    }
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = result.message) }
+                    }
+                    is Resource.Loading -> {
+                        _uiState.update { it.copy(isLoading = true) }
+                    }
+                }
             }
             _uiState.update {
                 it.copy(
@@ -212,17 +237,29 @@ class AuthViewModel(
             val email = current.techEmail
             val password = current.techPassword
             viewModelScope.launch {
-                val tech = authRepository.loginTech(email, password)
-                val techSessionId = if (tech.email.isNotBlank()) {
-                    "tech_${tech.email.lowercase()}"
-                } else {
-                    Constants.DEFAULT_TECH_ID
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+                when (val result = authRepository.login(email, password, "TECH")) {
+                    is Resource.Success -> {
+                        val tech = result.data
+                        val techSessionId = if (tech.email.isNotBlank()) {
+                            "tech_${tech.email.lowercase()}"
+                        } else {
+                            Constants.DEFAULT_TECH_ID
+                        }
+                        sessionManager?.saveSession(
+                            userId = techSessionId,
+                            name = tech.fullName,
+                            role = "TECH"
+                        )
+                        _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                    }
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = result.message) }
+                    }
+                    is Resource.Loading -> {
+                        _uiState.update { it.copy(isLoading = true) }
+                    }
                 }
-                sessionManager?.saveSession(
-                    userId = techSessionId,
-                    name = tech.fullName,
-                    role = "TECH"
-                )
             }
             _uiState.update {
                 it.copy(techEmail = "", techPassword = "", isTechEmailError = false, isTechPasswordError = false, errorMessage = null)
@@ -247,7 +284,8 @@ class AuthViewModel(
             it.copy(
                 techRegisterEmail = email,
                 isTechRegisterEmailError = if (email.isNotBlank()) false else it.isTechRegisterEmailError,
-                errorMessage = null
+                errorMessage = null,
+                verificationInfoMessage = null
             )
         }
     }
@@ -292,17 +330,29 @@ class AuthViewModel(
             val code = current.workshopCode
             val password = current.techRegisterPassword
             viewModelScope.launch {
-                val tech = authRepository.registerTech(fullName, email, code, password)
-                val techSessionId = if (tech.email.isNotBlank()) {
-                    "tech_${tech.email.lowercase()}"
-                } else {
-                    Constants.DEFAULT_TECH_ID
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+                when (val result = authRepository.register(fullName, email, password, "TECH", code)) {
+                    is Resource.Success -> {
+                        val tech = result.data
+                        val techSessionId = if (tech.email.isNotBlank()) {
+                            "tech_${tech.email.lowercase()}"
+                        } else {
+                            Constants.DEFAULT_TECH_ID
+                        }
+                        sessionManager?.saveSession(
+                            userId = techSessionId,
+                            name = tech.fullName,
+                            role = "TECH"
+                        )
+                        _uiState.update { it.copy(isLoading = false, errorMessage = null, verificationInfoMessage = null) }
+                    }
+                    is Resource.Error -> {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = result.message) }
+                    }
+                    is Resource.Loading -> {
+                        _uiState.update { it.copy(isLoading = true) }
+                    }
                 }
-                sessionManager?.saveSession(
-                    userId = techSessionId,
-                    name = tech.fullName,
-                    role = "TECH"
-                )
             }
             _uiState.update {
                 it.copy(
@@ -314,6 +364,7 @@ class AuthViewModel(
                     isTechRegisterEmailError = false,
                     isWorkshopCodeError = false,
                     isTechRegisterPasswordError = false,
+                    verificationInfoMessage = null,
                     errorMessage = null
                 )
             }
@@ -321,11 +372,63 @@ class AuthViewModel(
         return nameValid && emailValid && codeValid && passwordValid
     }
 
+    fun sendVerificationCode(email: String = _uiState.value.techRegisterEmail) {
+        val trimmedEmail = email.trim()
+        if (trimmedEmail.isBlank()) {
+            _uiState.update {
+                it.copy(
+                    isTechRegisterEmailError = true,
+                    verificationInfoMessage = null,
+                    errorMessage = "Ingresa tu correo electrónico para enviar el código"
+                )
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isSendingCode = true,
+                    isTechRegisterEmailError = false,
+                    verificationInfoMessage = null,
+                    errorMessage = null
+                )
+            }
+            when (val result = authRepository.sendVerificationCode(trimmedEmail)) {
+                is Resource.Success -> {
+                    val response = result.data
+                    val demoCode = response.demoCode?.takeIf { it.isNotBlank() } ?: "123456"
+                    _uiState.update { state ->
+                        state.copy(
+                            isSendingCode = false,
+                            workshopCode = state.workshopCode.ifBlank { demoCode },
+                            isWorkshopCodeError = false,
+                            verificationInfoMessage = "${response.message} (Código demo: $demoCode)",
+                            errorMessage = null
+                        )
+                    }
+                }
+                is Resource.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isSendingCode = false,
+                            verificationInfoMessage = null,
+                            errorMessage = result.message
+                        )
+                    }
+                }
+                is Resource.Loading -> {
+                    _uiState.update { it.copy(isSendingCode = true) }
+                }
+            }
+        }
+    }
+
     fun sendWorkshopVerificationCode() {
-        // Trigger verification code sending logic
+        sendVerificationCode(_uiState.value.techRegisterEmail)
     }
 
     fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
+        _uiState.update { it.copy(errorMessage = null, verificationInfoMessage = null) }
     }
 }

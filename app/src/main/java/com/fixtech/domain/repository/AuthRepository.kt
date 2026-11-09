@@ -1,5 +1,7 @@
 package com.fixtech.domain.repository
 
+import com.fixtech.core.common.Result
+import com.fixtech.data.remote.dto.ApiMessageResponseDto
 import com.fixtech.domain.model.Certificate
 import com.fixtech.domain.model.User
 import kotlinx.coroutines.flow.Flow
@@ -12,6 +14,15 @@ interface AuthRepository {
     fun observeAllCertificates(): Flow<Map<String, List<Certificate>>>
     fun observeCertificatesForTech(technicianId: String): Flow<List<Certificate>>
     fun observeCertificatesCountForTech(technicianId: String): Flow<Int>
+    suspend fun login(email: String, password: String, role: String = "USER"): Result<User>
+    suspend fun register(
+        name: String,
+        email: String,
+        password: String,
+        role: String = "USER",
+        verificationCode: String = ""
+    ): Result<User>
+    suspend fun sendVerificationCode(email: String): Result<ApiMessageResponseDto>
     suspend fun loginUser(email: String, password: String): User
     suspend fun registerUser(fullName: String, email: String, password: String): User
     suspend fun loginTech(email: String, password: String): User

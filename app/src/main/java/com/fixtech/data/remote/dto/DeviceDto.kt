@@ -1,5 +1,6 @@
 package com.fixtech.data.remote.dto
 
+import com.fixtech.data.local.entity.DeviceEntity
 import com.fixtech.domain.model.Device
 
 data class DeviceDto(
@@ -26,4 +27,43 @@ data class DeviceDto(
         storage = storage,
         processor = processor
     )
+
+    fun toEntity(): DeviceEntity = DeviceEntity(
+        id = id,
+        name = name,
+        model = model,
+        type = type,
+        technicianId = technicianId,
+        technicianName = technicianName,
+        imageUrl = imageUrl,
+        ram = ram,
+        storage = storage,
+        processor = processor
+    )
 }
+
+fun Device.toDto(): DeviceDto = DeviceDto(
+    id = id,
+    name = name,
+    model = model,
+    type = type,
+    technicianId = technicianId,
+    technicianName = technicianName,
+    imageUrl = imageUrl,
+    ram = ram,
+    storage = storage,
+    processor = processor
+)
+
+fun DeviceEntity.toDto(): DeviceDto = DeviceDto(
+    id = id,
+    name = name,
+    model = model,
+    type = type,
+    technicianId = technicianId,
+    technicianName = technicianName,
+    imageUrl = imageUrl,
+    ram = ram,
+    storage = storage,
+    processor = processor
+)

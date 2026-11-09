@@ -18,4 +18,5 @@ interface DeviceRepository {
     suspend fun insertDevice(device: Device)
     suspend fun deleteDeviceCascade(deviceId: String)
     suspend fun ensureSeedData()
+    suspend fun refreshFromRemote()
 }

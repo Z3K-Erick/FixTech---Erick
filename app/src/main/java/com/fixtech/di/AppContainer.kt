@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.fixtech.FixTechApp
 import com.fixtech.data.local.FixTechDatabase
 import com.fixtech.data.local.SessionManager
+import com.fixtech.data.remote.api.FixTechApiService
 import com.fixtech.data.repository.AuthRepositoryImpl
 import com.fixtech.data.repository.DeviceRepositoryImpl
 import com.fixtech.data.repository.GuideRepositoryImpl
@@ -17,8 +18,23 @@ import com.fixtech.presentation.auth.AuthViewModel
 import com.fixtech.presentation.guide.GuideViewModel
 import com.fixtech.presentation.home.HomeViewModel
 import com.fixtech.presentation.profile.ProfileViewModel
+import java.util.concurrent.TimeUnit
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class AppContainer(context: Context) {
+
+    companion object {
+        /**
+         * URL base del servidor Spring Boot (módulo backend/).
+         * - En Emulador de Android Studio: usa "http://10.0.2.2:8080/"
+         * - En Celular Físico (misma red Wi-Fi): cámbiala por la IP local de tu PC,
+         *   por ejemplo: "http://192.168.1.X:8080/" (puedes ver tu IP con `ipconfig`).
+         */
+        const val BASE_URL = "http://10.0.2.2:8080/"
+    }
 
     private val appContext = context.applicationContext
 
@@ -30,19 +46,47 @@ class AppContainer(context: Context) {
         SessionManager(appContext)
     }
 
+    private val okHttpClient: OkHttpClient by lazy {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+        OkHttpClient.Builder()
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(4, TimeUnit.SECONDS)
+            .writeTimeout(4, TimeUnit.SECONDS)
+            .addInterceptor(loggingInterceptor)
+            .build()
+    }
+
+    val apiService: FixTechApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(FixTechApiService::class.java)
+    }
+
     val authRepository: AuthRepository by lazy {
         AuthRepositoryImpl(
             userDao = database.userDao(),
-            sessionManager = sessionManager
+            sessionManager = sessionManager,
+            apiService = apiService
         )
     }
 
     val deviceRepository: DeviceRepository by lazy {
-        DeviceRepositoryImpl(database.deviceDao())
+        DeviceRepositoryImpl(
+            deviceDao = database.deviceDao(),
+            apiService = apiService
+        )
     }
 
     val guideRepository: GuideRepository by lazy {
-        GuideRepositoryImpl(database.guideDao())
+        GuideRepositoryImpl(
+            guideDao = database.guideDao(),
+            apiService = apiService
+        )
     }
 
     val viewModelFactory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {

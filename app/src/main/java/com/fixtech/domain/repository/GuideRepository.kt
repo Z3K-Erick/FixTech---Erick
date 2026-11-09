@@ -12,4 +12,5 @@ interface GuideRepository {
     suspend fun insertGuideWithSteps(guide: Guide)
     suspend fun deleteGuideCascade(guideId: String)
     suspend fun ensureSeedData()
+    suspend fun refreshFromRemote()
 }

@@ -84,8 +84,17 @@ interface GuideDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGuides(guides: List<GuideEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertGuidesIgnore(guides: List<GuideEntity>)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSteps(steps: List<GuideStepEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertStepsIgnore(steps: List<GuideStepEntity>)
+
+    @Query("SELECT id FROM guides")
+    suspend fun getAllGuideIds(): List<String>
 
     @Query("DELETE FROM guide_steps WHERE guideId = :guideId")
     suspend fun deleteStepsForGuide(guideId: String)

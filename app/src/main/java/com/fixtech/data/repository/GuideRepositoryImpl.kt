@@ -7,6 +7,8 @@ import com.fixtech.data.local.entity.GuideStepEntity
 import com.fixtech.data.local.entity.UserFavoriteGuideEntity
 import com.fixtech.data.local.entity.toDomain
 import com.fixtech.data.local.entity.toEntity
+import com.fixtech.data.remote.api.FixTechApiService
+import com.fixtech.data.remote.dto.toDto
 import com.fixtech.domain.model.Guide
 import com.fixtech.domain.repository.GuideRepository
 import kotlinx.coroutines.CoroutineScope
@@ -15,9 +17,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class GuideRepositoryImpl(
-    private val guideDao: GuideDao
+    private val guideDao: GuideDao,
+    private val apiService: FixTechApiService? = null
 ) : GuideRepository {
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -25,6 +29,7 @@ class GuideRepositoryImpl(
     init {
         repositoryScope.launch {
             ensureSeedData()
+            refreshFromRemote()
         }
     }
 
@@ -83,10 +88,39 @@ class GuideRepositoryImpl(
             step.copy(stepNumber = idx + 1).toEntity(guide.id)
         }
         guideDao.upsertGuideWithSteps(guide.toEntity(), stepEntities)
+        repositoryScope.launch {
+            try {
+                apiService?.createGuide(guide.toDto())
+            } catch (_: Exception) {
+                // Sincronización silenciosa en segundo plano si el servidor está apagado
+            }
+        }
     }
 
     override suspend fun deleteGuideCascade(guideId: String) {
         guideDao.deleteGuideCascade(guideId)
+    }
+
+    override suspend fun refreshFromRemote() {
+        withContext(Dispatchers.IO) {
+            try {
+                val remoteGuides = apiService?.getGuides().orEmpty()
+                if (remoteGuides.isNotEmpty()) {
+                    val existingIds = guideDao.getAllGuideIds().toSet()
+                    val newRemoteGuides = remoteGuides.filter { it.id.isNotBlank() && it.id !in existingIds }
+                    if (newRemoteGuides.isNotEmpty()) {
+                        val guideEntities = newRemoteGuides.map { it.toEntity() }
+                        val stepEntities = newRemoteGuides.flatMap { it.toStepEntities() }
+                        guideDao.insertGuidesIgnore(guideEntities)
+                        if (stepEntities.isNotEmpty()) {
+                            guideDao.insertStepsIgnore(stepEntities)
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                // Fallback offline resiliente: Room mantiene intactas las guías, imágenes y pasos locales
+            }
+        }
     }
 
     override suspend fun ensureSeedData() {

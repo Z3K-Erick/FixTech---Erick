@@ -5,6 +5,8 @@ import com.fixtech.data.local.entity.DeviceEntity
 import com.fixtech.data.local.entity.UserFavoriteDeviceEntity
 import com.fixtech.data.local.entity.toDomain
 import com.fixtech.data.local.entity.toEntity
+import com.fixtech.data.remote.api.FixTechApiService
+import com.fixtech.data.remote.dto.toDto
 import com.fixtech.domain.model.Device
 import com.fixtech.domain.repository.DeviceRepository
 import kotlinx.coroutines.CoroutineScope
@@ -13,9 +15,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DeviceRepositoryImpl(
-    private val deviceDao: DeviceDao
+    private val deviceDao: DeviceDao,
+    private val apiService: FixTechApiService? = null
 ) : DeviceRepository {
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -23,6 +27,7 @@ class DeviceRepositoryImpl(
     init {
         repositoryScope.launch {
             ensureSeedData()
+            refreshFromRemote()
         }
     }
 
@@ -77,10 +82,36 @@ class DeviceRepositoryImpl(
 
     override suspend fun insertDevice(device: Device) {
         deviceDao.insertDevice(device.toEntity())
+        repositoryScope.launch {
+            try {
+                apiService?.createDevice(device.toDto())
+            } catch (_: Exception) {
+                // Sincronización silenciosa en segundo plano si el servidor está apagado
+            }
+        }
     }
 
     override suspend fun deleteDeviceCascade(deviceId: String) {
         deviceDao.deleteDeviceCascade(deviceId)
+    }
+
+    override suspend fun refreshFromRemote() {
+        withContext(Dispatchers.IO) {
+            try {
+                val remoteDevices = apiService?.getDevices().orEmpty()
+                if (remoteDevices.isNotEmpty()) {
+                    val existingIds = deviceDao.getAllDeviceIds().toSet()
+                    val newRemoteEntities = remoteDevices
+                        .filter { it.id.isNotBlank() && it.id !in existingIds }
+                        .map { it.toEntity() }
+                    if (newRemoteEntities.isNotEmpty()) {
+                        deviceDao.insertDevicesIgnore(newRemoteEntities)
+                    }
+                }
+            } catch (_: Exception) {
+                // Fallback offline resiliente: Room mantiene intactos los datos e imágenes locales
+            }
+        }
     }
 
     override suspend fun ensureSeedData() {

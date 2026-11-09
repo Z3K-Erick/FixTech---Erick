@@ -92,6 +92,12 @@ interface DeviceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDevices(devices: List<DeviceEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertDevicesIgnore(devices: List<DeviceEntity>)
+
+    @Query("SELECT id FROM devices")
+    suspend fun getAllDeviceIds(): List<String>
+
     @Query("DELETE FROM guide_steps WHERE guideId IN (SELECT id FROM guides WHERE deviceId = :deviceId)")
     suspend fun deleteStepsForDevice(deviceId: String)
 

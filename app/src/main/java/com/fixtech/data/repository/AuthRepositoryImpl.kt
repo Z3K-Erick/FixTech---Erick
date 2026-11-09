@@ -1,16 +1,27 @@
 package com.fixtech.data.repository
 
 import com.fixtech.core.common.Constants
+import com.fixtech.core.common.Resource
+import com.fixtech.core.common.Result
 import com.fixtech.data.local.SessionManager
 import com.fixtech.data.local.dao.UserDao
 import com.fixtech.data.local.entity.CertificateEntity
 import com.fixtech.data.local.entity.UserEntity
 import com.fixtech.data.local.entity.toDomain
 import com.fixtech.data.local.entity.toEntity
+import com.fixtech.data.remote.api.FixTechApiService
+import com.fixtech.data.remote.dto.ApiMessageResponseDto
+import com.fixtech.data.remote.dto.LoginRequestDto
+import com.fixtech.data.remote.dto.RegisterRequestDto
+import com.fixtech.data.remote.dto.SendCodeRequestDto
+import com.fixtech.data.remote.dto.UserDto
 import com.fixtech.domain.model.Certificate
 import com.fixtech.domain.model.User
 import com.fixtech.domain.repository.AuthRepository
 import java.io.File
+import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,10 +32,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 class AuthRepositoryImpl(
     private val userDao: UserDao,
-    private val sessionManager: SessionManager? = null
+    private val sessionManager: SessionManager? = null,
+    private val apiService: FixTechApiService? = null
 ) : AuthRepository {
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -108,7 +122,253 @@ class AuthRepositoryImpl(
         return userDao.observeCertificatesCountForTech(technicianId)
     }
 
+    override suspend fun login(email: String, password: String, role: String): Result<User> =
+        withContext(Dispatchers.IO) {
+            val normalizedRole = if (role.equals("TECH", ignoreCase = true)) "TECH" else "USER"
+            val trimmedEmail = email.trim()
+            val api = apiService
+            if (api == null) {
+                val localUser = if (normalizedRole == "TECH") {
+                    loginTechLocal(trimmedEmail, password)
+                } else {
+                    loginUserLocal(trimmedEmail, password)
+                }
+                return@withContext Resource.Success(localUser)
+            }
+
+            try {
+                val response = api.login(
+                    LoginRequestDto(
+                        email = trimmedEmail,
+                        password = password,
+                        role = normalizedRole
+                    )
+                )
+                if (response.success) {
+                    val savedUser = persistRemoteUserAndSession(
+                        remoteUser = response.user,
+                        fallbackEmail = trimmedEmail,
+                        fallbackName = response.user?.fullName.orEmpty(),
+                        fallbackRole = normalizedRole,
+                        fallbackWorkshopCode = response.user?.workshopCode.orEmpty()
+                    )
+                    Resource.Success(savedUser)
+                } else {
+                    Resource.Error(response.message.ifBlank { "Credenciales incorrectas" })
+                }
+            } catch (e: HttpException) {
+                Resource.Error("Credenciales incorrectas", e)
+            } catch (e: ConnectException) {
+                // Fallback Resiliente (Modo Offline/Demo)
+                val localUser = if (normalizedRole == "TECH") {
+                    loginTechLocal(trimmedEmail, password)
+                } else {
+                    loginUserLocal(trimmedEmail, password)
+                }
+                Resource.Success(localUser)
+            } catch (e: SocketTimeoutException) {
+                // Fallback Resiliente (Modo Offline/Demo)
+                val localUser = if (normalizedRole == "TECH") {
+                    loginTechLocal(trimmedEmail, password)
+                } else {
+                    loginUserLocal(trimmedEmail, password)
+                }
+                Resource.Success(localUser)
+            } catch (e: IOException) {
+                // Fallback Resiliente (Modo Offline/Demo)
+                val localUser = if (normalizedRole == "TECH") {
+                    loginTechLocal(trimmedEmail, password)
+                } else {
+                    loginUserLocal(trimmedEmail, password)
+                }
+                Resource.Success(localUser)
+            } catch (e: Exception) {
+                val localUser = if (normalizedRole == "TECH") {
+                    loginTechLocal(trimmedEmail, password)
+                } else {
+                    loginUserLocal(trimmedEmail, password)
+                }
+                Resource.Success(localUser)
+            }
+        }
+
+    override suspend fun register(
+        name: String,
+        email: String,
+        password: String,
+        role: String,
+        verificationCode: String
+    ): Result<User> = withContext(Dispatchers.IO) {
+        val normalizedRole = if (role.equals("TECH", ignoreCase = true)) "TECH" else "USER"
+        val trimmedName = name.trim()
+        val trimmedEmail = email.trim()
+        val trimmedCode = verificationCode.trim()
+        val api = apiService
+
+        if (api == null) {
+            val localUser = if (normalizedRole == "TECH") {
+                registerTechLocal(trimmedName, trimmedEmail, trimmedCode, password)
+            } else {
+                registerUserLocal(trimmedName, trimmedEmail, password)
+            }
+            return@withContext Resource.Success(localUser)
+        }
+
+        try {
+            val response = api.register(
+                RegisterRequestDto(
+                    name = trimmedName,
+                    email = trimmedEmail,
+                    password = password,
+                    role = normalizedRole,
+                    verificationCode = trimmedCode
+                )
+            )
+            if (response.success) {
+                val savedUser = persistRemoteUserAndSession(
+                    remoteUser = response.user,
+                    fallbackEmail = trimmedEmail,
+                    fallbackName = trimmedName,
+                    fallbackRole = normalizedRole,
+                    fallbackWorkshopCode = trimmedCode
+                )
+                Resource.Success(savedUser)
+            } else {
+                Resource.Error(response.message.ifBlank { "No se pudo registrar la cuenta" })
+            }
+        } catch (e: HttpException) {
+            Resource.Error("Datos de registro inválidos", e)
+        } catch (e: ConnectException) {
+            // Fallback Resiliente (Modo Offline/Demo)
+            val localUser = if (normalizedRole == "TECH") {
+                registerTechLocal(trimmedName, trimmedEmail, trimmedCode, password)
+            } else {
+                registerUserLocal(trimmedName, trimmedEmail, password)
+            }
+            Resource.Success(localUser)
+        } catch (e: SocketTimeoutException) {
+            // Fallback Resiliente (Modo Offline/Demo)
+            val localUser = if (normalizedRole == "TECH") {
+                registerTechLocal(trimmedName, trimmedEmail, trimmedCode, password)
+            } else {
+                registerUserLocal(trimmedName, trimmedEmail, password)
+            }
+            Resource.Success(localUser)
+        } catch (e: IOException) {
+            // Fallback Resiliente (Modo Offline/Demo)
+            val localUser = if (normalizedRole == "TECH") {
+                registerTechLocal(trimmedName, trimmedEmail, trimmedCode, password)
+            } else {
+                registerUserLocal(trimmedName, trimmedEmail, password)
+            }
+            Resource.Success(localUser)
+        } catch (e: Exception) {
+            val localUser = if (normalizedRole == "TECH") {
+                registerTechLocal(trimmedName, trimmedEmail, trimmedCode, password)
+            } else {
+                registerUserLocal(trimmedName, trimmedEmail, password)
+            }
+            Resource.Success(localUser)
+        }
+    }
+
+    override suspend fun sendVerificationCode(email: String): Result<ApiMessageResponseDto> =
+        withContext(Dispatchers.IO) {
+            val trimmedEmail = email.trim()
+            if (trimmedEmail.isBlank()) {
+                return@withContext Resource.Error("Ingresa tu correo electrónico para enviar el código")
+            }
+
+            val api = apiService
+            if (api == null) {
+                return@withContext Resource.Success(
+                    ApiMessageResponseDto(
+                        success = true,
+                        message = "Código de confirmación enviado a $trimmedEmail",
+                        demoCode = "123456"
+                    )
+                )
+            }
+
+            try {
+                val response = api.sendVerificationCode(SendCodeRequestDto(email = trimmedEmail))
+                if (response.success) {
+                    Resource.Success(response)
+                } else {
+                    Resource.Error(response.message.ifBlank { "No se pudo enviar el código" })
+                }
+            } catch (e: Exception) {
+                // Fallback Resiliente (Modo Offline/Demo)
+                Resource.Success(
+                    ApiMessageResponseDto(
+                        success = true,
+                        message = "Código de confirmación enviado a $trimmedEmail",
+                        demoCode = "123456"
+                    )
+                )
+            }
+        }
+
+    private suspend fun persistRemoteUserAndSession(
+        remoteUser: UserDto?,
+        fallbackEmail: String,
+        fallbackName: String,
+        fallbackRole: String,
+        fallbackWorkshopCode: String
+    ): User {
+        val role = remoteUser?.role?.ifBlank { fallbackRole } ?: fallbackRole
+        val email = remoteUser?.email?.ifBlank { fallbackEmail } ?: fallbackEmail
+        val name = remoteUser?.fullName?.ifBlank { fallbackName } ?: fallbackName
+        val workshopCode = remoteUser?.workshopCode?.ifBlank { fallbackWorkshopCode } ?: fallbackWorkshopCode
+
+        return if (role.equals("TECH", ignoreCase = true)) {
+            registerOrUpdateTechLocal(
+                fullName = name,
+                email = email,
+                workshopCode = workshopCode
+            )
+        } else {
+            registerOrUpdateUserLocal(
+                fullName = name,
+                email = email
+            )
+        }
+    }
+
     override suspend fun loginUser(email: String, password: String): User {
+        return when (val result = login(email, password, "USER")) {
+            is Resource.Success -> result.data
+            else -> loginUserLocal(email, password)
+        }
+    }
+
+    override suspend fun registerUser(fullName: String, email: String, password: String): User {
+        return when (val result = register(fullName, email, password, "USER")) {
+            is Resource.Success -> result.data
+            else -> registerUserLocal(fullName, email, password)
+        }
+    }
+
+    override suspend fun loginTech(email: String, password: String): User {
+        return when (val result = login(email, password, "TECH")) {
+            is Resource.Success -> result.data
+            else -> loginTechLocal(email, password)
+        }
+    }
+
+    override suspend fun registerTech(
+        fullName: String,
+        email: String,
+        workshopCode: String,
+        password: String
+    ): User {
+        return when (val result = register(fullName, email, password, "TECH", workshopCode)) {
+            is Resource.Success -> result.data
+            else -> registerTechLocal(fullName, email, workshopCode, password)
+        }
+    }
+
+    private suspend fun loginUserLocal(email: String, password: String): User {
         val trimmedEmail = email.trim()
         val accountUserId = if (trimmedEmail.isNotEmpty()) {
             "user_${trimmedEmail.lowercase()}"
@@ -155,7 +415,11 @@ class AuthRepositoryImpl(
         return user
     }
 
-    override suspend fun registerUser(fullName: String, email: String, password: String): User {
+    private suspend fun registerOrUpdateUserLocal(fullName: String, email: String): User {
+        return registerUserLocal(fullName, email, "")
+    }
+
+    private suspend fun registerUserLocal(fullName: String, email: String, password: String): User {
         val trimmedEmail = email.trim()
         val accountUserId = if (trimmedEmail.isNotEmpty()) {
             "user_${trimmedEmail.lowercase()}"
@@ -167,7 +431,8 @@ class AuthRepositoryImpl(
 
         val resolvedId = existing?.id ?: accountUserId
         val trimmedName = fullName.trim().ifEmpty {
-            trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() }.ifEmpty { "Usuario" }
+            existing?.fullName?.takeIf { it.isNotBlank() }
+                ?: trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() }.ifEmpty { "Usuario" }
         }
         val notifEnabled = existing?.notificationsEnabled ?: true
         val avatarUri = existing?.avatarUri
@@ -199,7 +464,7 @@ class AuthRepositoryImpl(
         return user
     }
 
-    override suspend fun loginTech(email: String, password: String): User {
+    private suspend fun loginTechLocal(email: String, password: String): User {
         val trimmedEmail = email.trim()
         val techAccountId = if (trimmedEmail.isNotEmpty()) {
             "tech_${trimmedEmail.lowercase()}"
@@ -247,7 +512,15 @@ class AuthRepositoryImpl(
         return tech
     }
 
-    override suspend fun registerTech(
+    private suspend fun registerOrUpdateTechLocal(
+        fullName: String,
+        email: String,
+        workshopCode: String
+    ): User {
+        return registerTechLocal(fullName, email, workshopCode, "")
+    }
+
+    private suspend fun registerTechLocal(
         fullName: String,
         email: String,
         workshopCode: String,
@@ -261,19 +534,29 @@ class AuthRepositoryImpl(
         }
         val existingTech = userDao.getUserById(techAccountId)
             ?: userDao.getUserByEmailAndRole(trimmedEmail, "TECH")
+            ?: userDao.getUserById(Constants.DEFAULT_TECH_ID)
+
+        val matchesEmail = existingTech != null &&
+            (trimmedEmail.isEmpty() || existingTech.email.equals(trimmedEmail, ignoreCase = true))
 
         val trimmedName = fullName.trim().ifEmpty {
-            trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() }.ifEmpty { Constants.DEFAULT_TECH_NAME }
+            if (matchesEmail && existingTech!!.fullName.isNotBlank()) {
+                existingTech.fullName
+            } else {
+                trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() }.ifEmpty { Constants.DEFAULT_TECH_NAME }
+            }
         }
+
+        val resolvedAvatar = if (matchesEmail) existingTech?.avatarUri else _currentTech.value.avatarUri
 
         val tech = User(
             id = Constants.DEFAULT_TECH_ID,
             fullName = trimmedName,
-            email = trimmedEmail,
+            email = trimmedEmail.ifBlank { existingTech?.email ?: "carlos@fixtech.com" },
             role = "TECH",
-            workshopCode = workshopCode.trim(),
+            workshopCode = workshopCode.trim().ifEmpty { existingTech?.workshopCode.orEmpty() },
             notificationsEnabled = existingTech?.notificationsEnabled ?: true,
-            avatarUri = existingTech?.avatarUri
+            avatarUri = resolvedAvatar
         )
 
         userDao.upsertUser(tech.toEntity())

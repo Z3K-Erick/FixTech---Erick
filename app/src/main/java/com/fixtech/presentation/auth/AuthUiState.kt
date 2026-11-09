@@ -31,6 +31,10 @@ data class AuthUiState(
     val isWorkshopCodeError: Boolean = false,
     val isTechRegisterPasswordError: Boolean = false,
 
+    // Envío de código de confirmación (Retrofit + Fallback)
+    val isSendingCode: Boolean = false,
+    val verificationInfoMessage: String? = null,
+
     // UI flags obligatorios (Bloque 3)
     val isLoading: Boolean = false,
     val errorMessage: String? = null
