@@ -19,5 +19,7 @@ data class CertificateEntity(
     val technicianId: String,
     val title: String,
     val institution: String,
-    val fileName: String
+    val fileName: String,
+    val localFilePath: String = "",
+    val mimeType: String = "application/pdf"
 )

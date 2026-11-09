@@ -64,33 +64,7 @@ val defaultCatalogDevices = listOf(
     )
 )
 
-val defaultTechCertificates: Map<String, List<Certificate>> = mapOf(
-    "admin-current" to listOf(
-        Certificate(
-            id = "cert_1",
-            technicianId = "admin-current",
-            title = "Mantenimiento de equipos de cómputo",
-            institution = "Instituto TecnoSur",
-            fileName = "mantenimiento.pdf"
-        ),
-        Certificate(
-            id = "cert_2",
-            technicianId = "admin-current",
-            title = "Certificación en Electrónica y Microsoldadura",
-            institution = "Centro de Capacitación Técnica",
-            fileName = "electronica_cert.pdf"
-        )
-    ),
-    "admin-other" to listOf(
-        Certificate(
-            id = "cert_3",
-            technicianId = "admin-other",
-            title = "Diagnóstico y Ensamble de Laptops y PC",
-            institution = "Academia Nacional de Hardware",
-            fileName = "diagnostico_hardware.pdf"
-        )
-    )
-)
+val defaultTechCertificates: Map<String, List<Certificate>> = emptyMap()
 
 data class HomeUiState(
     val searchQuery: String = "",
@@ -114,17 +88,21 @@ data class HomeUiState(
     // Compatibilidad
     val userDevices: List<Device> = emptyList(),
 
-    // Add Device (Exclusivo para Técnico)
+    // Add / Edit Device (Exclusivo para Técnico)
+    val editingDeviceId: String? = null,
     val newDeviceType: String = "Laptop",
     val newDeviceBrand: String = "",
     val newDeviceModel: String = "",
     val newDeviceImageUri: String = "",
     val newDeviceImageFileName: String = "",
-    val newDeviceRam: String = "8 GB",
+    val newDeviceRam: String = "16 GB",
     val newDeviceStorage: String = "512 GB SSD",
     val newDeviceProcessor: String = "Intel Core",
     val isBrandError: Boolean = false,
     val isModelError: Boolean = false,
+    val isDuplicateModelError: Boolean = false,
+    val brandErrorText: String? = null,
+    val modelErrorText: String? = null,
 
     // Diagnostic Flow State
     val diagnosticStep: Int = 1,
@@ -135,6 +113,7 @@ data class HomeUiState(
     val techSearchQuery: String = "",
     val techSelectedTab: Int = 0, // 0: Mis Equipos, 1: Guías, 2: Perfil
     val techSelectedFilter: String = "Todos",
+    val expandedTechDeviceId: String? = null,
 
     // UI flags obligatorios (Bloque 3)
     val isLoading: Boolean = false,

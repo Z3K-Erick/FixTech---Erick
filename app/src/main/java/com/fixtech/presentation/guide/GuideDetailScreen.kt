@@ -86,9 +86,9 @@ fun GuideDetailScreen(
     }
 
     val (difficultyDisplay, activeColor) = when (uiState.difficultyLabel) {
-        "Fácil", "Bajo", "Básico" -> "Fácil" to SuccessGreen
-        "Difícil", "Alto", "Avanzado" -> "Difícil" to DangerRed
-        else -> "Media" to WarningAmber
+        "Fácil", "Bajo", "Básico" -> "Bajo" to SuccessGreen
+        "Difícil", "Alto", "Avanzado" -> "Alto" to DangerRed
+        else -> "Medio" to WarningAmber
     }
 
     Scaffold(
@@ -237,7 +237,7 @@ fun GuideDetailScreen(
                                 modifier = Modifier
                                     .size(12.dp)
                                     .background(
-                                        if (difficultyDisplay == "Difícil") DangerRed else TextSecondary.copy(alpha = 0.2f),
+                                        if (difficultyDisplay == "Alto") DangerRed else TextSecondary.copy(alpha = 0.2f),
                                         CircleShape
                                     )
                             )
@@ -245,7 +245,7 @@ fun GuideDetailScreen(
                                 modifier = Modifier
                                     .size(12.dp)
                                     .background(
-                                        if (difficultyDisplay == "Media") WarningAmber else TextSecondary.copy(alpha = 0.2f),
+                                        if (difficultyDisplay == "Medio") WarningAmber else TextSecondary.copy(alpha = 0.2f),
                                         CircleShape
                                     )
                             )
@@ -253,7 +253,7 @@ fun GuideDetailScreen(
                                 modifier = Modifier
                                     .size(12.dp)
                                     .background(
-                                        if (difficultyDisplay == "Fácil") SuccessGreen else TextSecondary.copy(alpha = 0.2f),
+                                        if (difficultyDisplay == "Bajo") SuccessGreen else TextSecondary.copy(alpha = 0.2f),
                                         CircleShape
                                     )
                             )

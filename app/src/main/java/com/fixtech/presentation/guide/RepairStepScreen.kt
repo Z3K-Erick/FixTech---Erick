@@ -94,10 +94,14 @@ fun RepairStepScreen(
     val requiresLock = uiState.stepHasAlert && uiState.stepRequiresConfirmation
     val canProceed = !requiresLock || uiState.isStepAlertConfirmed
 
-    val (alertBg, alertAccent, alertIcon) = when (uiState.stepAlertLevel) {
-        "Informativa" -> Triple(AlertInfoBg, PrimaryBlue, Icons.Default.Info)
-        "Peligro eléctrico" -> Triple(AlertDangerBg, DangerRed, Icons.Default.Bolt)
-        else -> Triple(AlertWarningBg, WarningAmber, Icons.Default.Warning)
+    val (alertBg, alertAccent, alertIcon) = when {
+        uiState.stepAlertLevel.contains("Info", ignoreCase = true) ||
+            uiState.stepAlertLevel.contains("Nota", ignoreCase = true) ->
+            Triple(AlertInfoBg, PrimaryBlue, Icons.Default.Info)
+        uiState.stepAlertLevel.contains("Peligro", ignoreCase = true) ->
+            Triple(AlertDangerBg, DangerRed, Icons.Default.Bolt)
+        else ->
+            Triple(AlertWarningBg, WarningAmber, Icons.Default.Warning)
     }
 
     Scaffold(

@@ -5,5 +5,7 @@ data class Certificate(
     val technicianId: String = "admin-current",
     val title: String,
     val institution: String,
-    val fileName: String
+    val fileName: String,
+    val localFilePath: String = "",
+    val mimeType: String = "application/pdf"
 )

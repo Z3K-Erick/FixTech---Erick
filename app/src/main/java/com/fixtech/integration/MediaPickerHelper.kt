@@ -82,7 +82,7 @@ object MediaPickerHelper {
     }
 
     fun copyUriToInternalStorage(context: Context, sourceUri: Uri, fallbackFileName: String): Pair<String, String> {
-        val displayName = DocumentPickerHelper.resolveDisplayName(context, sourceUri, fallbackFileName)
+        val displayName = CertificateDocumentHelper.resolveDisplayName(context, sourceUri, fallbackFileName)
         return try {
             val destFile = createPersistentImageFile(context, displayName)
             context.contentResolver.openInputStream(sourceUri)?.use { input ->
@@ -281,16 +281,16 @@ fun rememberMediaPickerLauncher(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.PhotoLibrary,
-                                contentDescription = "Seleccionar de la galería",
-                                tint = PrimaryBlue,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            imageVector = Icons.Default.PhotoLibrary,
+                            contentDescription = "Elegir de la galería",
+                            tint = PrimaryBlue,
+                            modifier = Modifier.size(20.dp)
+                        )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Seleccionar de la galería",
+                                text = "Elegir de la galería",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = TextPrimary
@@ -351,7 +351,7 @@ fun rememberMediaPickerLauncher(
                     )
                 ) {
                     Text(
-                        text = "Seleccionar de la galería",
+                        text = "Elegir de la galería",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )

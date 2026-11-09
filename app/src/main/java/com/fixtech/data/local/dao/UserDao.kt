@@ -26,11 +26,23 @@ interface UserDao {
     @Query("SELECT * FROM certificates")
     fun observeAllCertificates(): Flow<List<CertificateEntity>>
 
+    @Query("SELECT * FROM certificates WHERE technicianId = :technicianId")
+    fun observeCertificatesForTech(technicianId: String): Flow<List<CertificateEntity>>
+
+    @Query("SELECT COUNT(*) FROM certificates WHERE technicianId = :technicianId")
+    fun observeCertificatesCountForTech(technicianId: String): Flow<Int>
+
+    @Query("SELECT * FROM certificates WHERE id = :certificateId LIMIT 1")
+    suspend fun getCertificateById(certificateId: String): CertificateEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCertificate(certificate: CertificateEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCertificates(certificates: List<CertificateEntity>)
+
+    @Query("DELETE FROM certificates WHERE id = :certificateId")
+    suspend fun deleteCertificateById(certificateId: String)
 
     @Query("SELECT COUNT(*) FROM certificates")
     suspend fun getCertificatesCount(): Int

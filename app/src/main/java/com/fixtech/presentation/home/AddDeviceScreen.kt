@@ -1,5 +1,6 @@
 package com.fixtech.presentation.home
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,14 +14,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.DesktopWindows
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.LaptopMac
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Storage
@@ -54,6 +58,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.fixtech.core.ui.theme.AlertDangerBg
 import com.fixtech.core.ui.theme.BackgroundDark
 import com.fixtech.core.ui.theme.BorderDark
 import com.fixtech.core.ui.theme.DangerRed
@@ -81,8 +87,10 @@ fun AddDeviceScreen(
     homeViewModel: HomeViewModel = viewModel(factory = FixTechViewModelFactory)
 ) {
     val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val isEditing = uiState.editingDeviceId != null
 
     val launchDeviceImagePicker = rememberMediaPickerLauncher(
         fallbackFileName = "equipo_foto.jpg",
@@ -112,7 +120,8 @@ fun AddDeviceScreen(
         errorLabelColor = DangerRed,
         focusedBorderColor = PrimaryBlue,
         unfocusedBorderColor = BorderDark,
-        errorBorderColor = DangerRed
+        errorBorderColor = DangerRed,
+        errorCursorColor = DangerRed
     )
 
     Scaffold(
@@ -120,7 +129,7 @@ fun AddDeviceScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Agregar equipo",
+                        text = if (isEditing) "Editar Dispositivo" else "Nuevo Dispositivo",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
@@ -152,50 +161,50 @@ fun AddDeviceScreen(
                 .padding(top = 16.dp, bottom = 32.dp)
         ) {
             if (uiState.errorMessage != null) {
-                Text(
-                    text = uiState.errorMessage ?: "",
-                    fontSize = 13.sp,
-                    color = DangerRed,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = AlertDangerBg),
+                    border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.6f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = DangerRed,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (uiState.isDuplicateModelError) {
+                                    "Este modelo ya está registrado"
+                                } else {
+                                    "Falta información obligatoria"
+                                },
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DangerRed
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = uiState.errorMessage ?: "",
+                                fontSize = 12.sp,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+                }
             }
 
-            // 1. Selección de tipo de equipo (Laptop / PC Escritorio)
-            Text(
-                text = "Tipo de equipo",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                DeviceTypeCard(
-                    title = "Laptop",
-                    subtitle = "Portátil con batería",
-                    icon = Icons.Default.LaptopMac,
-                    isSelected = uiState.newDeviceType == "Laptop",
-                    onClick = { homeViewModel.onNewDeviceTypeSelected("Laptop") },
-                    modifier = Modifier.weight(1f)
-                )
-
-                DeviceTypeCard(
-                    title = "PC Escritorio",
-                    subtitle = "Torre o All-in-One",
-                    icon = Icons.Default.DesktopWindows,
-                    isSelected = uiState.newDeviceType == "PC Escritorio",
-                    onClick = { homeViewModel.onNewDeviceTypeSelected("PC Escritorio") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 2. Campos para Marca y Modelo + Fotografía del equipo
+            // 1. Nombre y Número de modelo
             Text(
                 text = "Identificación del equipo",
                 fontSize = 16.sp,
@@ -208,8 +217,8 @@ fun AddDeviceScreen(
             OutlinedTextField(
                 value = uiState.newDeviceBrand,
                 onValueChange = homeViewModel::onNewDeviceBrandChanged,
-                label = { Text("Marca / Nombre") },
-                placeholder = { Text("Ej. Lenovo LOQ, HP Pavilion", color = TextSecondary) },
+                label = { Text("Nombre *") },
+                placeholder = { Text("Ej. Lenovo LOQ, Corsair One", color = TextSecondary) },
                 isError = uiState.isBrandError,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -217,12 +226,30 @@ fun AddDeviceScreen(
                 colors = textFieldColors
             )
 
+            if (uiState.brandErrorText != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        tint = DangerRed,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = uiState.brandErrorText ?: "",
+                        fontSize = 12.sp,
+                        color = DangerRed
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(14.dp))
 
             OutlinedTextField(
                 value = uiState.newDeviceModel,
                 onValueChange = homeViewModel::onNewDeviceModelChanged,
-                label = { Text("Número de Modelo") },
+                label = { Text("Número de modelo *") },
                 placeholder = { Text("Ej. 15IRH8, i300", color = TextSecondary) },
                 isError = uiState.isModelError,
                 singleLine = true,
@@ -231,13 +258,78 @@ fun AddDeviceScreen(
                 colors = textFieldColors
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (uiState.modelErrorText != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        tint = DangerRed,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = uiState.modelErrorText ?: "",
+                        fontSize = 12.sp,
+                        color = DangerRed
+                    )
+                }
+            }
 
-            // Contenedor punteado para tomar foto o seleccionar imagen del equipo desde la galería
+            Spacer(modifier = Modifier.height(22.dp))
+
+            // 2. Selección de tipo de equipo (Laptop / PC)
+            Text(
+                text = "Tipo de equipo *",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            val isPcSelected = uiState.newDeviceType.equals("PC", ignoreCase = true) ||
+                uiState.newDeviceType.contains("PC", ignoreCase = true)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                DeviceTypeCard(
+                    title = "Laptop",
+                    subtitle = "Portátil con batería",
+                    icon = Icons.Default.LaptopMac,
+                    isSelected = !isPcSelected,
+                    onClick = { homeViewModel.onNewDeviceTypeSelected("Laptop") },
+                    modifier = Modifier.weight(1f)
+                )
+
+                DeviceTypeCard(
+                    title = "PC",
+                    subtitle = "Torre o All-in-One",
+                    icon = Icons.Default.DesktopWindows,
+                    isSelected = isPcSelected,
+                    onClick = { homeViewModel.onNewDeviceTypeSelected("PC") },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            // 3. Imagen propia del equipo (usando MediaPickerHelper)
+            Text(
+                text = "Imagen del equipo",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .height(140.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(SurfaceDark, shape = RoundedCornerShape(10.dp))
                     .drawBehind {
@@ -260,6 +352,22 @@ fun AddDeviceScreen(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = BackgroundDark.copy(alpha = 0.85f),
+                        border = BorderStroke(1.dp, BorderDark),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(10.dp)
+                    ) {
+                        Text(
+                            text = "Cambiar imagen",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = PrimaryBlue,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        )
+                    }
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
@@ -277,7 +385,7 @@ fun AddDeviceScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Toca para usar cámara o galería",
+                            text = "Toca para tomar foto con cámara o elegir de la galería",
                             fontSize = 11.sp,
                             color = TextSecondary
                         )
@@ -287,7 +395,7 @@ fun AddDeviceScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3. Selectores de componentes (Chips con RoundedCornerShape(8.dp), height(38.dp), Modifier.weight(1f))
+            // 4. Selectores de componentes (Chips con RoundedCornerShape(8.dp), height(38.dp), Modifier.weight(1f))
             Text(
                 text = "Componentes y Especificaciones",
                 fontSize = 16.sp,
@@ -327,12 +435,19 @@ fun AddDeviceScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 4. Botón Principal "Guardar equipo"
+            // 5. Botón Principal "Guardar Dispositivo" / "Actualizar"
             Button(
                 onClick = {
-                    if (homeViewModel.saveNewDevice()) {
-                        onSaveDevice()
-                    }
+                    homeViewModel.saveDevice(
+                        onSuccess = {
+                            Toast.makeText(
+                                context,
+                                if (isEditing) "Cambios guardados correctamente" else "Dispositivo creado correctamente",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            onSaveDevice()
+                        }
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -343,8 +458,14 @@ fun AddDeviceScreen(
                     contentColor = Color.White
                 )
             ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Guardar equipo",
+                    text = if (isEditing) "Actualizar Dispositivo" else "Guardar Dispositivo",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White

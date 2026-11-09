@@ -1,5 +1,6 @@
 package com.fixtech.presentation.profile
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,6 +46,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,6 +63,7 @@ import com.fixtech.core.ui.theme.SurfaceDark
 import com.fixtech.core.ui.theme.TextPrimary
 import com.fixtech.core.ui.theme.TextSecondary
 import com.fixtech.di.FixTechViewModelFactory
+import com.fixtech.integration.CertificateDocumentHelper
 import com.fixtech.presentation.guide.GuideViewModel
 import com.fixtech.presentation.home.HomeViewModel
 
@@ -71,10 +74,13 @@ fun PublicTechProfileScreen(
     onNavigateBack: () -> Unit = {},
     onSelectGuide: (String) -> Unit = {},
     homeViewModel: HomeViewModel = viewModel(factory = FixTechViewModelFactory),
-    guideViewModel: GuideViewModel = viewModel(factory = FixTechViewModelFactory)
+    guideViewModel: GuideViewModel = viewModel(factory = FixTechViewModelFactory),
+    profileViewModel: ProfileViewModel = viewModel(factory = FixTechViewModelFactory)
 ) {
+    val context = LocalContext.current
     val homeState by homeViewModel.uiState.collectAsStateWithLifecycle()
     val guideState by guideViewModel.uiState.collectAsStateWithLifecycle()
+    val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(techIdArg) {
         if (!techIdArg.isNullOrBlank()) {
@@ -87,14 +93,18 @@ fun PublicTechProfileScreen(
     val techGuides = guideState.guides.filter { it.authorId == techId }
     val techCertificates = homeState.techCertificatesByAdmin[techId] ?: emptyList()
 
-    val techName = techDevices.firstOrNull()?.authorName
-        ?: techGuides.firstOrNull()?.author
-        ?: if (techId == "admin-other") "Ana R." else "Carlos M."
+    val techName = when (techId) {
+        "admin-current" -> profileState.techName.ifBlank { "Carlos M." }
+        "admin-other" -> "Ana R."
+        else -> techDevices.firstOrNull()?.authorName
+            ?: techGuides.firstOrNull()?.author
+            ?: "Técnico FixTech"
+    }
 
     val techSpecialty = if (techId == "admin-other") {
         "Especialista en Diagnóstico de Laptops y GPU"
     } else {
-        "Técnico Especialista en Mantenimiento y Hardware"
+        "Técnico Administrador · Mantenimiento y Hardware"
     }
 
     val initial = techName.firstOrNull()?.uppercase() ?: "T"
@@ -202,7 +212,7 @@ fun PublicTechProfileScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Fila de 3 contadores (Equipos, Guías, Certificados)
+            // Fila de 3 contadores reales (Equipos, Guías, Certificados)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -226,7 +236,7 @@ fun PublicTechProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Sección: CERTIFICADOS COMPARTIDOS (Modo solo lectura para dar confianza al usuario)
+            // Sección: CERTIFICADOS COMPARTIDOS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -269,7 +279,7 @@ fun PublicTechProfileScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Este técnico no ha compartido certificados aún.",
+                            text = "Este técnico no ha compartido certificados. Es opcional.",
                             fontSize = 12.sp,
                             color = TextSecondary
                         )
@@ -278,7 +288,23 @@ fun PublicTechProfileScreen(
             } else {
                 techCertificates.forEach { cert ->
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (cert.localFilePath.isNotBlank()) {
+                                    CertificateDocumentHelper.openCertificate(
+                                        context = context,
+                                        localFilePath = cert.localFilePath,
+                                        mimeType = cert.mimeType
+                                    )
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Certificado verificado: ${cert.fileName}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
                         shape = RoundedCornerShape(10.dp),
                         colors = CardDefaults.cardColors(containerColor = SurfaceDark),
                         border = BorderStroke(1.dp, BorderDark)
@@ -316,7 +342,7 @@ fun PublicTechProfileScreen(
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "${cert.institution} · ${cert.fileName}",
+                                    text = "${cert.institution.ifBlank { "Documento compartido" }} · ${cert.fileName}",
                                     fontSize = 12.sp,
                                     color = TextSecondary
                                 )
@@ -339,7 +365,7 @@ fun PublicTechProfileScreen(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "Verificado",
+                                        text = if (cert.localFilePath.isNotBlank()) "Abrir" else "Verificado",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = PrimaryBlue
@@ -376,11 +402,18 @@ fun PublicTechProfileScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            if (techDevices.isEmpty()) {
+                Text(
+                    text = "Este técnico aún no agregó equipos.",
+                    fontSize = 12.sp,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+            }
+
             techDevices.forEach { device ->
                 val isPc = device.category.contains("PC", ignoreCase = true)
-                val deviceGuides = techGuides.filter {
-                    it.deviceId == device.id || it.category.equals(device.category, ignoreCase = true)
-                }
+                val deviceGuides = guideState.guides.filter { it.deviceId == device.id }
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -456,7 +489,7 @@ fun PublicTechProfileScreen(
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = "Dificultad ${guide.difficulty} · ${guide.steps.size} pasos · ${guide.tools.size} herramientas",
+                                        text = "Nivel ${guide.difficulty} · ${guide.steps.size} pasos · ${guide.tools.size} herramientas",
                                         fontSize = 12.sp,
                                         color = TextSecondary
                                     )

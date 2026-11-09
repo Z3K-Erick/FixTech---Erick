@@ -42,6 +42,24 @@ class DeviceRepositoryImpl(
         return deviceDao.observeSavedDevicesCount(currentUserId)
     }
 
+    override fun observeTechDevicesCount(technicianId: String): Flow<Int> {
+        return deviceDao.observeTechDevicesCount(technicianId)
+    }
+
+    override suspend fun existsDuplicateDevice(
+        technicianId: String,
+        model: String,
+        type: String,
+        excludeDeviceId: String?
+    ): Boolean {
+        return deviceDao.existsDuplicateDevice(
+            technicianId = technicianId,
+            model = model.trim(),
+            type = type.trim(),
+            excludeDeviceId = excludeDeviceId
+        )
+    }
+
     override suspend fun toggleBookmark(userId: String, deviceId: String) {
         val isCurrentlySaved = deviceDao.isDeviceBookmarked(userId, deviceId)
         if (isCurrentlySaved) {
@@ -59,6 +77,10 @@ class DeviceRepositoryImpl(
 
     override suspend fun insertDevice(device: Device) {
         deviceDao.insertDevice(device.toEntity())
+    }
+
+    override suspend fun deleteDeviceCascade(deviceId: String) {
+        deviceDao.deleteDeviceCascade(deviceId)
     }
 
     override suspend fun ensureSeedData() {

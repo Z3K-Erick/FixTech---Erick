@@ -146,7 +146,9 @@ fun CertificateEntity.toDomain(): Certificate = Certificate(
     technicianId = technicianId,
     title = title,
     institution = institution,
-    fileName = fileName
+    fileName = fileName,
+    localFilePath = localFilePath,
+    mimeType = mimeType
 )
 
 fun Certificate.toEntity(): CertificateEntity = CertificateEntity(
@@ -154,5 +156,7 @@ fun Certificate.toEntity(): CertificateEntity = CertificateEntity(
     technicianId = technicianId,
     title = title,
     institution = institution,
-    fileName = fileName
+    fileName = fileName,
+    localFilePath = localFilePath,
+    mimeType = mimeType
 )

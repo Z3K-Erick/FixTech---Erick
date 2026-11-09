@@ -73,6 +73,8 @@ class GuideViewModel(
                                 isLoading = false
                             )
                         }
+                    } else {
+                        _uiState.update { it.copy(guides = emptyList(), isLoading = false) }
                     }
                 }
         }
@@ -116,13 +118,14 @@ class GuideViewModel(
             val sourceList = current.deviceGuides.ifEmpty { current.guides }
             val guide = sourceList.find { it.id == guideId }
                 ?: current.guides.find { it.id == guideId }
-                ?: current.guides.first()
+                ?: current.guides.firstOrNull()
+                ?: defaultCatalogGuides.first()
             val firstStep = guide.steps.firstOrNull() ?: GuideStep(
                 stepNumber = 1,
                 title = "Paso 1",
                 description = "Sigue las instrucciones indicadas.",
-                alertType = "Precaución",
-                alertTitle = "Precaución",
+                alertType = "Advertencia",
+                alertTitle = "Advertencia",
                 alertMessage = "Procede con cuidado."
             )
             val total = guide.steps.size.coerceAtLeast(1)
@@ -193,7 +196,7 @@ class GuideViewModel(
 
     fun nextStep() {
         _uiState.update { current ->
-            val guide = current.guides.find { it.id == current.selectedGuideId } ?: current.guides.first()
+            val guide = current.guides.find { it.id == current.selectedGuideId } ?: current.guides.firstOrNull() ?: defaultCatalogGuides.first()
             if (current.currentStep < current.totalSteps) {
                 val next = current.currentStep + 1
                 val stepObj = guide.steps.getOrNull(next - 1)
@@ -203,7 +206,7 @@ class GuideViewModel(
                     stepInstruction = stepObj?.instruction ?: current.stepInstruction,
                     stepImageUrl = stepObj?.imageUrl ?: "",
                     stepHasAlert = stepObj?.hasAlert ?: false,
-                    stepAlertLevel = stepObj?.alertType ?: "Precaución",
+                    stepAlertLevel = stepObj?.alertType ?: "Advertencia",
                     cautionTitle = stepObj?.alertTitle ?: current.cautionTitle,
                     cautionDescription = stepObj?.alertMessage ?: current.cautionDescription,
                     stepRequiresConfirmation = stepObj?.requiresConfirmation ?: false,
@@ -219,7 +222,7 @@ class GuideViewModel(
 
     fun previousStep() {
         _uiState.update { current ->
-            val guide = current.guides.find { it.id == current.selectedGuideId } ?: current.guides.first()
+            val guide = current.guides.find { it.id == current.selectedGuideId } ?: current.guides.firstOrNull() ?: defaultCatalogGuides.first()
             if (current.currentStep > 1) {
                 val prev = current.currentStep - 1
                 val stepObj = guide.steps.getOrNull(prev - 1)
@@ -229,7 +232,7 @@ class GuideViewModel(
                     stepInstruction = stepObj?.instruction ?: current.stepInstruction,
                     stepImageUrl = stepObj?.imageUrl ?: "",
                     stepHasAlert = stepObj?.hasAlert ?: false,
-                    stepAlertLevel = stepObj?.alertType ?: "Precaución",
+                    stepAlertLevel = stepObj?.alertType ?: "Advertencia",
                     cautionTitle = stepObj?.alertTitle ?: current.cautionTitle,
                     cautionDescription = stepObj?.alertMessage ?: current.cautionDescription,
                     stepRequiresConfirmation = stepObj?.requiresConfirmation ?: false,
@@ -247,22 +250,134 @@ class GuideViewModel(
         selectGuide(_uiState.value.selectedGuideId, _uiState.value.activeDeviceId)
     }
 
-    // Create Guide Form handlers
+    // =========================================================================
+    // Create / Edit / Delete Guide Form handlers
+    // =========================================================================
+
+    fun startNewGuide(preselectedDevice: Device? = null, availableTechDevices: List<Device> = emptyList()) {
+        val targetDevice = preselectedDevice
+            ?: availableTechDevices.firstOrNull { it.technicianId == Constants.DEFAULT_TECH_ID }
+            ?: availableTechDevices.firstOrNull()
+        val categoryLabel = if (targetDevice?.type?.contains("PC", ignoreCase = true) == true) "PC" else "Laptop"
+        val modelSpecLabel = targetDevice?.let { "${it.name} ${it.model}" } ?: ""
+
+        _uiState.update {
+            it.copy(
+                editingGuideId = null,
+                formGuideTitle = "",
+                formSelectedDeviceId = targetDevice?.id ?: "",
+                formSelectedCategory = categoryLabel,
+                formSelectedDifficulty = "Medio",
+                formEstimatedTime = "",
+                formModelSpec = modelSpecLabel,
+                formCoverImageUri = "",
+                formCoverImageFileName = "",
+                formToolInput = "",
+                formToolsList = emptyList(),
+                formStepCount = 1,
+                formSteps = listOf(StepFormState()),
+                showMandatoryValidationBanner = false,
+                isGuideTitleError = false,
+                isGuideDeviceError = false,
+                isStepsError = false,
+                isSavingGuide = false,
+                errorMessage = null
+            )
+        }
+    }
+
+    fun startEditGuide(guide: Guide, availableTechDevices: List<Device> = emptyList()) {
+        val matchedDevice = availableTechDevices.find { it.id == guide.deviceId }
+        val categoryLabel = if (guide.category.contains("PC", ignoreCase = true) ||
+            matchedDevice?.type?.contains("PC", ignoreCase = true) == true
+        ) "PC" else "Laptop"
+
+        val normalizedDifficulty = when {
+            guide.difficulty.equals("Bajo", ignoreCase = true) ||
+                guide.difficulty.equals("Básico", ignoreCase = true) ||
+                guide.difficulty.equals("Fácil", ignoreCase = true) -> "Bajo"
+            guide.difficulty.equals("Alto", ignoreCase = true) ||
+                guide.difficulty.equals("Avanzado", ignoreCase = true) ||
+                guide.difficulty.equals("Difícil", ignoreCase = true) -> "Alto"
+            else -> "Medio"
+        }
+
+        val mappedSteps = guide.steps.map { step ->
+            val normalizedAlert = when {
+                step.alertType.contains("Peligro", ignoreCase = true) -> "Peligro"
+                step.alertType.contains("Info", ignoreCase = true) ||
+                    step.alertType.contains("Nota", ignoreCase = true) -> "Información"
+                else -> "Advertencia"
+            }
+            StepFormState(
+                title = step.title,
+                description = step.description,
+                imageUri = step.imageUrl,
+                imageFileName = if (step.imageUrl.isNotBlank()) "imagen_paso_${step.stepNumber}.jpg" else "",
+                includeCautionAlert = step.hasAlert,
+                selectedAlertLevel = normalizedAlert,
+                alertText = step.alertMessage,
+                requiresConfirmation = step.requiresConfirmation,
+                confirmationText = step.confirmationText,
+                isTitleError = false
+            )
+        }.ifEmpty { listOf(StepFormState()) }
+
+        _uiState.update {
+            it.copy(
+                editingGuideId = guide.id,
+                formGuideTitle = guide.title,
+                formSelectedDeviceId = guide.deviceId,
+                formSelectedCategory = categoryLabel,
+                formSelectedDifficulty = normalizedDifficulty,
+                formEstimatedTime = guide.estimatedTime,
+                formModelSpec = matchedDevice?.let { d -> "${d.name} ${d.model}" } ?: guide.modelSpec,
+                formCoverImageUri = guide.imageUrl,
+                formCoverImageFileName = if (guide.imageUrl.isNotBlank()) "portada_guia.jpg" else "",
+                formToolInput = "",
+                formToolsList = guide.toolsList,
+                formStepCount = mappedSteps.size,
+                formSteps = mappedSteps,
+                showMandatoryValidationBanner = false,
+                isGuideTitleError = false,
+                isGuideDeviceError = false,
+                isStepsError = false,
+                isSavingGuide = false,
+                errorMessage = null
+            )
+        }
+    }
+
+    fun deleteGuide(guideId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                guideRepository.deleteGuideCascade(guideId)
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Error al eliminar la guía") }
+            }
+        }
+    }
+
     fun onFormGuideTitleChanged(title: String) {
         _uiState.update {
             it.copy(
                 formGuideTitle = title,
+                isGuideTitleError = if (title.trim().isNotEmpty()) false else it.isGuideTitleError,
                 errorMessage = if (title.isNotBlank()) null else it.errorMessage
             )
         }
     }
 
     fun onFormDeviceSelected(deviceId: String, category: String, modelSpec: String) {
+        // Permanece bloqueado si se está editando una guía existente
+        if (_uiState.value.editingGuideId != null) return
         _uiState.update {
             it.copy(
                 formSelectedDeviceId = deviceId,
                 formSelectedCategory = category,
-                formModelSpec = modelSpec
+                formModelSpec = modelSpec,
+                isGuideDeviceError = if (deviceId.isNotBlank()) false else it.isGuideDeviceError
             )
         }
     }
@@ -299,11 +414,24 @@ class GuideViewModel(
     fun addFormTool() {
         _uiState.update { current ->
             val trimmed = current.formToolInput.trim()
-            if (trimmed.isNotEmpty()) {
+            if (trimmed.isNotEmpty() && !current.formToolsList.contains(trimmed)) {
                 current.copy(
                     formToolsList = current.formToolsList + trimmed,
                     formToolInput = ""
                 )
+            } else if (trimmed.isNotEmpty()) {
+                current.copy(formToolInput = "")
+            } else {
+                current
+            }
+        }
+    }
+
+    fun addQuickTool(toolName: String) {
+        _uiState.update { current ->
+            val trimmed = toolName.trim()
+            if (trimmed.isNotEmpty() && !current.formToolsList.contains(trimmed)) {
+                current.copy(formToolsList = current.formToolsList + trimmed)
             } else {
                 current
             }
@@ -327,14 +455,15 @@ class GuideViewModel(
             val updatedList = current.formSteps + StepFormState()
             current.copy(
                 formStepCount = updatedList.size,
-                formSteps = updatedList
+                formSteps = updatedList,
+                isStepsError = false
             )
         }
     }
 
     fun removeStepBlock(index: Int) {
         _uiState.update { current ->
-            if (current.formSteps.size > 1 && index in current.formSteps.indices) {
+            if (index in current.formSteps.indices) {
                 val updatedList = current.formSteps.filterIndexed { i, _ -> i != index }
                 current.copy(
                     formStepCount = updatedList.size,
@@ -346,13 +475,46 @@ class GuideViewModel(
         }
     }
 
+    fun moveStepUp(index: Int) {
+        _uiState.update { current ->
+            if (index > 0 && index in current.formSteps.indices) {
+                val updatedList = current.formSteps.toMutableList()
+                val temp = updatedList[index - 1]
+                updatedList[index - 1] = updatedList[index]
+                updatedList[index] = temp
+                current.copy(formSteps = updatedList)
+            } else {
+                current
+            }
+        }
+    }
+
+    fun moveStepDown(index: Int) {
+        _uiState.update { current ->
+            if (index in 0 until (current.formSteps.size - 1)) {
+                val updatedList = current.formSteps.toMutableList()
+                val temp = updatedList[index + 1]
+                updatedList[index + 1] = updatedList[index]
+                updatedList[index] = temp
+                current.copy(formSteps = updatedList)
+            } else {
+                current
+            }
+        }
+    }
+
     fun onStepTitleChanged(index: Int, title: String) {
         _uiState.update { current ->
             if (index in current.formSteps.indices) {
                 val updated = current.formSteps.toMutableList()
-                updated[index] = updated[index].copy(title = title)
+                updated[index] = updated[index].copy(
+                    title = title,
+                    isTitleError = if (title.trim().isNotEmpty()) false else updated[index].isTitleError
+                )
+                val allStepsHaveTitle = updated.isNotEmpty() && updated.all { it.title.trim().isNotEmpty() }
                 current.copy(
                     formSteps = updated,
+                    isStepsError = if (allStepsHaveTitle) false else current.isStepsError,
                     errorMessage = if (title.isNotBlank()) null else current.errorMessage
                 )
             } else {
@@ -429,7 +591,7 @@ class GuideViewModel(
             if (index in current.formSteps.indices) {
                 val updated = current.formSteps.toMutableList()
                 val defaultConfirm = if (required && updated[index].confirmationText.isBlank()) {
-                    "Batería desconectada"
+                    "He leído y realizado esta precaución"
                 } else {
                     updated[index].confirmationText
                 }
@@ -456,75 +618,89 @@ class GuideViewModel(
         }
     }
 
-    fun publishGuide(availableDevices: List<Device> = emptyList()): Boolean {
+    fun publishGuide(
+        availableDevices: List<Device> = emptyList(),
+        onSuccess: (isUpdate: Boolean) -> Unit = {}
+    ): Boolean {
         val current = _uiState.value
         val title = current.formGuideTitle.trim()
-        val hasInvalidStep = current.formSteps.isEmpty() || current.formSteps.any { it.title.trim().isEmpty() }
+        val techDevices = availableDevices.filter { it.technicianId == Constants.DEFAULT_TECH_ID }
+            .ifEmpty { availableDevices }
 
-        if (title.isEmpty() || hasInvalidStep) {
+        val titleValid = title.isNotEmpty()
+        val deviceValid = current.formSelectedDeviceId.isNotBlank() &&
+            (techDevices.isEmpty() || techDevices.any { it.id == current.formSelectedDeviceId } || current.editingGuideId != null)
+        val stepsValid = current.formSteps.isNotEmpty() && current.formSteps.all { it.title.trim().isNotEmpty() }
+
+        if (!titleValid || !deviceValid || !stepsValid) {
+            val validatedSteps = current.formSteps.map { step ->
+                step.copy(isTitleError = step.title.trim().isEmpty())
+            }
             _uiState.update {
                 it.copy(
-                    errorMessage = "Por favor, completa el título de la guía y el título de cada paso antes de publicar."
+                    showMandatoryValidationBanner = true,
+                    isGuideTitleError = !titleValid,
+                    isGuideDeviceError = !deviceValid,
+                    isStepsError = !stepsValid,
+                    formSteps = validatedSteps,
+                    errorMessage = "Falta información obligatoria"
                 )
             }
             return false
         }
 
-        val category = if (current.formSelectedCategory.contains("PC", ignoreCase = true)) "PC" else "Laptop"
-        val difficultyNormalized = when (current.formSelectedDifficulty) {
-            "Básico", "Bajo", "Fácil" -> "Fácil"
-            "Avanzado", "Alto", "Difícil" -> "Difícil"
-            else -> "Media"
+        val matchedDevice = availableDevices.find { it.id == current.formSelectedDeviceId }
+        val category = when {
+            matchedDevice != null -> if (matchedDevice.type.contains("PC", ignoreCase = true)) "PC" else "Laptop"
+            current.formSelectedCategory.contains("PC", ignoreCase = true) -> "PC"
+            else -> "Laptop"
         }
-        val newGuideId = "guide_${System.currentTimeMillis()}"
+
+        val difficultyNormalized = when (current.formSelectedDifficulty) {
+            "Bajo", "Básico", "Fácil" -> "Bajo"
+            "Alto", "Avanzado", "Difícil" -> "Alto"
+            else -> "Medio"
+        }
+
+        val isEditing = current.editingGuideId != null
+        val targetGuideId = current.editingGuideId ?: "guide_${System.currentTimeMillis()}"
+
         val steps = current.formSteps.mapIndexed { idx, s ->
             val confirmEnabled = s.includeCautionAlert && s.requiresConfirmation
             val confirmLabel = if (confirmEnabled) {
-                s.confirmationText.trim().ifEmpty { "Batería desconectada" }
+                s.confirmationText.trim().ifEmpty { "He leído y realizado esta precaución" }
             } else {
                 ""
             }
-            val alertHeading = when (s.selectedAlertLevel) {
-                "Informativa" -> "Nota"
-                "Peligro eléctrico" -> "Precaución"
+            val normalizedAlertLevel = when {
+                s.selectedAlertLevel.contains("Peligro", ignoreCase = true) -> "Peligro"
+                s.selectedAlertLevel.contains("Info", ignoreCase = true) ||
+                    s.selectedAlertLevel.contains("Nota", ignoreCase = true) -> "Información"
                 else -> "Advertencia"
             }
             GuideStep(
-                id = "${newGuideId}_step_${idx + 1}",
-                guideId = newGuideId,
+                id = "${targetGuideId}_step_${idx + 1}",
+                guideId = targetGuideId,
                 stepNumber = idx + 1,
                 title = s.title.trim(),
-                description = s.description.trim().ifEmpty { "Realiza el procedimiento indicado con precaución." },
+                description = s.description.trim().ifEmpty { "Sigue las indicaciones de este paso con cuidado." },
                 hasAlert = s.includeCautionAlert,
-                alertType = s.selectedAlertLevel,
-                alertTitle = alertHeading,
-                alertMessage = s.alertText.trim().ifEmpty { "Verifica las medidas de seguridad antes de continuar." },
+                alertType = normalizedAlertLevel,
+                alertTitle = normalizedAlertLevel,
+                alertMessage = if (s.includeCautionAlert) {
+                    s.alertText.trim().ifEmpty { "Verifica las medidas de seguridad antes de continuar." }
+                } else {
+                    ""
+                },
                 requiresConfirmation = confirmEnabled,
                 confirmationText = confirmLabel,
                 imageUrl = s.imageUri
             )
         }
 
-        val matchedDevice = availableDevices.find { it.id == current.formSelectedDeviceId }
-            ?: availableDevices.find {
-                current.formModelSpec.isNotBlank() &&
-                    "${it.name} ${it.model}".equals(current.formModelSpec.trim(), ignoreCase = true)
-            }
-            ?: availableDevices.firstOrNull {
-                it.category.equals(category, ignoreCase = true) && it.authorId == Constants.DEFAULT_TECH_ID
-            }
-
-        val targetDeviceId = matchedDevice?.id ?: if (current.formSelectedDeviceId.isNotBlank()) {
-            current.formSelectedDeviceId
-        } else if (category == "PC") {
-            "dev_2"
-        } else {
-            "dev_1"
-        }
-
-        val resolvedModelSpec = current.formModelSpec.trim().ifEmpty {
-            matchedDevice?.let { "${it.name} ${it.model}" } ?: "Lenovo LOQ 15IRH8"
-        }
+        val targetDeviceId = matchedDevice?.id ?: current.formSelectedDeviceId.ifBlank { "dev_1" }
+        val resolvedModelSpec = matchedDevice?.let { "${it.name} ${it.model}" }
+            ?: current.formModelSpec.trim().ifEmpty { "Lenovo LOQ 15IRH8" }
 
         val pendingTool = current.formToolInput.trim()
         val combinedTools = if (pendingTool.isNotEmpty() && !current.formToolsList.contains(pendingTool)) {
@@ -535,47 +711,65 @@ class GuideViewModel(
 
         val techName = authRepository.currentTech.value.fullName.ifBlank { Constants.DEFAULT_TECH_NAME }
         val newGuide = Guide(
-            id = newGuideId,
+            id = targetGuideId,
             deviceId = targetDeviceId,
             title = title,
             category = category,
             difficulty = difficultyNormalized,
-            estimatedTime = current.formEstimatedTime.trim().ifEmpty { "30 min" },
+            estimatedTime = current.formEstimatedTime.trim().ifEmpty { "${(steps.size * 10).coerceAtLeast(15)} min" },
             technicianId = Constants.DEFAULT_TECH_ID,
             technicianName = techName,
             modelSpec = resolvedModelSpec,
             precautions = "Procedimiento técnico paso a paso para $title.",
-            toolsList = combinedTools.ifEmpty { listOf("Destornillador Phillips #0", "Púa de apertura") },
+            toolsList = combinedTools,
             imageUrl = current.formCoverImageUri,
             steps = steps
         )
 
+        _uiState.update { it.copy(isSavingGuide = true, errorMessage = null) }
+
         viewModelScope.launch {
             try {
                 guideRepository.insertGuideWithSteps(newGuide)
+                _uiState.update {
+                    it.copy(
+                        editingGuideId = null,
+                        formGuideTitle = "",
+                        formEstimatedTime = "",
+                        formModelSpec = "",
+                        formCoverImageUri = "",
+                        formCoverImageFileName = "",
+                        formToolInput = "",
+                        formToolsList = emptyList(),
+                        formStepCount = 1,
+                        formSteps = listOf(StepFormState()),
+                        showMandatoryValidationBanner = false,
+                        isGuideTitleError = false,
+                        isGuideDeviceError = false,
+                        isStepsError = false,
+                        isSavingGuide = false,
+                        errorMessage = null
+                    )
+                }
+                onSuccess(isEditing)
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "Error al publicar la guía") }
+                _uiState.update {
+                    it.copy(
+                        isSavingGuide = false,
+                        errorMessage = "Error al guardar la guía en la base de datos"
+                    )
+                }
             }
-        }
-
-        _uiState.update {
-            it.copy(
-                formGuideTitle = "",
-                formEstimatedTime = "",
-                formModelSpec = "",
-                formCoverImageUri = "",
-                formCoverImageFileName = "",
-                formToolInput = "",
-                formToolsList = emptyList(),
-                formStepCount = 1,
-                formSteps = listOf(StepFormState()),
-                errorMessage = null
-            )
         }
         return true
     }
 
     fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
+        _uiState.update {
+            it.copy(
+                errorMessage = null,
+                showMandatoryValidationBanner = false
+            )
+        }
     }
 }

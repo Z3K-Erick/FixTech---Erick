@@ -46,22 +46,25 @@ class ProfileViewModel(
             }
         }
 
-        // 2. Técnico actual
+        // 2. Técnico actual (Nombre real, correo real, etiqueta "Técnico Administrador")
         viewModelScope.launch {
             authRepository.currentTech.collect { tech ->
-                val resolvedName = tech.fullName.ifBlank { "Erick" }
-                val initial = resolvedName.firstOrNull()?.uppercase() ?: "E"
+                val resolvedName = tech.fullName.ifBlank { Constants.DEFAULT_TECH_NAME }
+                val resolvedEmail = tech.email.ifBlank { "carlos.tech@fixtech.com" }
+                val initial = resolvedName.firstOrNull()?.uppercase() ?: "C"
                 _uiState.update {
                     it.copy(
                         techName = resolvedName,
+                        techEmail = resolvedEmail,
                         techInitial = initial,
+                        techBadge = "Técnico Administrador",
                         techNotificationsEnabled = tech.notificationsEnabled
                     )
                 }
             }
         }
 
-        // 3. Contador de Equipos Guardados desde Room
+        // 3. Contador de Equipos Guardados desde Room (Usuario Normal)
         viewModelScope.launch {
             authRepository.observeCurrentUserId()
                 .flatMapLatest { userId ->
@@ -75,7 +78,7 @@ class ProfileViewModel(
                 }
         }
 
-        // 4. Contador de Guías Favoritas desde Room (INNER JOIN guides g ON ug.guideId = g.id)
+        // 4. Contador de Guías Favoritas desde Room (Usuario Normal)
         viewModelScope.launch {
             authRepository.observeCurrentUserId()
                 .flatMapLatest { userId ->
@@ -89,42 +92,41 @@ class ProfileViewModel(
                 }
         }
 
-        // 5. Contador de guías del técnico desde Room
+        // 5. Contador real de "Mis Equipos" del técnico desde Room
         viewModelScope.launch {
-            authRepository.observeCurrentUserId()
-                .flatMapLatest { userId ->
-                    guideRepository.observeAllGuides(userId)
-                }
+            deviceRepository.observeTechDevicesCount(Constants.DEFAULT_TECH_ID)
                 .catch { e ->
                     _uiState.update { it.copy(errorMessage = e.message) }
                 }
-                .collect { guides ->
-                    if (guides.isNotEmpty()) {
-                        val extraTechGuides = (guides.size - 4).coerceAtLeast(0)
-                        _uiState.update {
-                            it.copy(
-                                techMyGuidesCount = 3 + extraTechGuides,
-                                techInProgressCount = 1,
-                                techApprovedCount = 2 + extraTechGuides
-                            )
-                        }
-                    }
+                .collect { devicesCount ->
+                    _uiState.update { it.copy(techMyDevicesCount = devicesCount) }
                 }
         }
 
-        // 6. Certificados del técnico desde Room
+        // 6. Contador real de "Mis Guías" del técnico desde Room
         viewModelScope.launch {
-            authRepository.observeAllCertificates()
+            guideRepository.observeTechGuidesCount(Constants.DEFAULT_TECH_ID)
                 .catch { e ->
                     _uiState.update { it.copy(errorMessage = e.message) }
                 }
-                .collect { certsByTech ->
-                    val techCerts = certsByTech[Constants.DEFAULT_TECH_ID].orEmpty()
-                    if (techCerts.size > 2) {
-                        val latestUploaded = techCerts.lastOrNull()?.fileName
-                        if (!latestUploaded.isNullOrBlank()) {
-                            _uiState.update { it.copy(uploadedCertificateName = latestUploaded) }
-                        }
+                .collect { guidesCount ->
+                    _uiState.update { it.copy(techMyGuidesCount = guidesCount) }
+                }
+        }
+
+        // 7. Lista y contador real de "Certificados" del técnico desde Room
+        viewModelScope.launch {
+            authRepository.observeCertificatesForTech(Constants.DEFAULT_TECH_ID)
+                .catch { e ->
+                    _uiState.update { it.copy(errorMessage = e.message) }
+                }
+                .collect { certs ->
+                    _uiState.update {
+                        it.copy(
+                            techCertificates = certs,
+                            techCertificatesCount = certs.size,
+                            uploadedCertificateName = certs.lastOrNull()?.fileName
+                        )
                     }
                 }
         }
@@ -142,23 +144,71 @@ class ProfileViewModel(
         }
     }
 
-    fun uploadCertificate(fileName: String = "certificado_tecnico.pdf") {
-        val cleanName = fileName.trim().ifEmpty { "certificado_tecnico.pdf" }
-        _uiState.update {
-            it.copy(uploadedCertificateName = cleanName)
-        }
+    fun dismissCertNotice() {
+        _uiState.update { it.copy(isCertNoticeDismissed = true) }
+    }
+
+    fun addTechCertificate(
+        title: String,
+        institution: String,
+        fileName: String,
+        localFilePath: String,
+        mimeType: String,
+        onSuccess: () -> Unit = {}
+    ) {
+        val cleanTitle = title.trim()
+        val cleanInstitution = institution.trim()
+        val cleanFileName = fileName.trim().ifEmpty { "certificado_tecnico.pdf" }
+        if (cleanTitle.isEmpty()) return
+
+        _uiState.update { it.copy(isUploadingCertificate = true, errorMessage = null) }
         viewModelScope.launch {
             try {
                 authRepository.addCertificate(
                     technicianId = Constants.DEFAULT_TECH_ID,
-                    title = "Certificado Técnico Especialista",
-                    institution = "FixTech Academy",
-                    fileName = cleanName
+                    title = cleanTitle,
+                    institution = cleanInstitution,
+                    fileName = cleanFileName,
+                    localFilePath = localFilePath,
+                    mimeType = mimeType
                 )
+                _uiState.update {
+                    it.copy(
+                        isUploadingCertificate = false,
+                        uploadedCertificateName = cleanFileName,
+                        errorMessage = null
+                    )
+                }
+                onSuccess()
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "Error al guardar certificado") }
+                _uiState.update {
+                    it.copy(
+                        isUploadingCertificate = false,
+                        errorMessage = "Error al guardar el certificado en Room"
+                    )
+                }
             }
         }
+    }
+
+    fun deleteTechCertificate(certificateId: String) {
+        viewModelScope.launch {
+            try {
+                authRepository.deleteCertificate(certificateId)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Error al eliminar el certificado") }
+            }
+        }
+    }
+
+    fun uploadCertificate(fileName: String = "certificado_tecnico.pdf") {
+        addTechCertificate(
+            title = "Certificado Técnico Especialista",
+            institution = "FixTech Academy",
+            fileName = fileName,
+            localFilePath = "",
+            mimeType = "application/pdf"
+        )
     }
 
     fun clearSession() {

@@ -168,6 +168,9 @@ fun AppNavGraph() {
                     onNavigateToAddDevice = {
                         navController.navigate(Routes.AddDevice.route)
                     },
+                    onNavigateToDeviceGuides = { deviceId ->
+                        navController.navigate(Routes.DeviceGuides.createRoute(deviceId))
+                    },
                     onNavigateToGuideDetail = { guideId ->
                         navController.navigate(Routes.TechGuideDetail.createRoute(guideId))
                     },
@@ -234,6 +237,7 @@ fun AppNavGraph() {
                     techIdArg = techId,
                     homeViewModel = homeViewModel,
                     guideViewModel = guideViewModel,
+                    profileViewModel = profileViewModel,
                     onNavigateBack = { navController.popBackStack() },
                     onSelectGuide = { guideId ->
                         navController.navigate(Routes.GuideDetail.createRoute(guideId))
@@ -323,8 +327,14 @@ fun AppNavGraph() {
                     guideViewModel = guideViewModel,
                     onNavigateBack = { navController.popBackStack() },
                     onFinishGuide = {
-                        navController.navigate(Routes.Home.route) {
-                            popUpTo(Routes.Home.route) { inclusive = true }
+                        val poppedToTech = navController.popBackStack(Routes.TechHome.route, inclusive = false)
+                        if (!poppedToTech) {
+                            val poppedToHome = navController.popBackStack(Routes.Home.route, inclusive = false)
+                            if (!poppedToHome) {
+                                navController.navigate(Routes.Home.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
                         }
                     }
                 )

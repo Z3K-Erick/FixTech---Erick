@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.fixtech.data.local.entity.GuideEntity
 import com.fixtech.data.local.entity.GuideStepEntity
 import com.fixtech.data.local.entity.GuideWithFavoriteRow
@@ -22,7 +23,6 @@ interface GuideDao {
         LEFT JOIN user_favorite_guides fav
                ON g.id = fav.guideId AND fav.userId = :currentUserId AND fav.deviceId = :deviceId
         WHERE g.deviceId = :deviceId
-           OR g.category = (SELECT d.type FROM devices d WHERE d.id = :deviceId)
         ORDER BY CASE WHEN fav.guideId IS NOT NULL THEN 1 ELSE 0 END DESC, fav.pinnedAt DESC, g.id ASC
         """
     )
@@ -54,6 +54,9 @@ interface GuideDao {
     @Query("SELECT COUNT(*) FROM user_favorite_guides ug INNER JOIN guides g ON ug.guideId = g.id WHERE ug.userId = :userId")
     fun observeFavoriteGuidesCount(userId: String): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM guides WHERE technicianId = :technicianId")
+    fun observeTechGuidesCount(technicianId: String): Flow<Int>
+
     @Query(
         """
         SELECT EXISTS(
@@ -83,6 +86,29 @@ interface GuideDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSteps(steps: List<GuideStepEntity>)
+
+    @Query("DELETE FROM guide_steps WHERE guideId = :guideId")
+    suspend fun deleteStepsForGuide(guideId: String)
+
+    @Query("DELETE FROM user_favorite_guides WHERE guideId = :guideId")
+    suspend fun deleteFavoritesForGuide(guideId: String)
+
+    @Query("DELETE FROM guides WHERE id = :guideId")
+    suspend fun deleteGuideById(guideId: String)
+
+    @Transaction
+    suspend fun upsertGuideWithSteps(guide: GuideEntity, steps: List<GuideStepEntity>) {
+        deleteStepsForGuide(guide.id)
+        insertGuide(guide)
+        insertSteps(steps)
+    }
+
+    @Transaction
+    suspend fun deleteGuideCascade(guideId: String) {
+        deleteStepsForGuide(guideId)
+        deleteFavoritesForGuide(guideId)
+        deleteGuideById(guideId)
+    }
 
     @Query("SELECT COUNT(*) FROM guides")
     suspend fun getGuidesCount(): Int

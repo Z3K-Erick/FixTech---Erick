@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.fixtech.data.local.entity.DeviceEntity
 import com.fixtech.data.local.entity.DeviceWithBookmarkRow
 import com.fixtech.data.local.entity.UserFavoriteDeviceEntity
@@ -48,6 +49,27 @@ interface DeviceDao {
     )
     fun observeSavedDevicesCount(currentUserId: String): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM devices WHERE technicianId = :technicianId")
+    fun observeTechDevicesCount(technicianId: String): Flow<Int>
+
+    @Query(
+        """
+        SELECT EXISTS(
+            SELECT 1 FROM devices
+            WHERE technicianId = :technicianId
+              AND LOWER(TRIM(model)) = LOWER(TRIM(:model))
+              AND LOWER(TRIM(type)) = LOWER(TRIM(:type))
+              AND (:excludeDeviceId IS NULL OR id != :excludeDeviceId)
+        )
+        """
+    )
+    suspend fun existsDuplicateDevice(
+        technicianId: String,
+        model: String,
+        type: String,
+        excludeDeviceId: String? = null
+    ): Boolean
+
     @Query(
         """
         SELECT EXISTS(
@@ -69,6 +91,30 @@ interface DeviceDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDevices(devices: List<DeviceEntity>)
+
+    @Query("DELETE FROM guide_steps WHERE guideId IN (SELECT id FROM guides WHERE deviceId = :deviceId)")
+    suspend fun deleteStepsForDevice(deviceId: String)
+
+    @Query("DELETE FROM user_favorite_guides WHERE deviceId = :deviceId OR guideId IN (SELECT id FROM guides WHERE deviceId = :deviceId)")
+    suspend fun deleteFavoriteGuidesForDevice(deviceId: String)
+
+    @Query("DELETE FROM guides WHERE deviceId = :deviceId")
+    suspend fun deleteGuidesForDevice(deviceId: String)
+
+    @Query("DELETE FROM user_favorite_devices WHERE deviceId = :deviceId")
+    suspend fun deleteBookmarksForDevice(deviceId: String)
+
+    @Query("DELETE FROM devices WHERE id = :deviceId")
+    suspend fun deleteDeviceById(deviceId: String)
+
+    @Transaction
+    suspend fun deleteDeviceCascade(deviceId: String) {
+        deleteStepsForDevice(deviceId)
+        deleteFavoriteGuidesForDevice(deviceId)
+        deleteGuidesForDevice(deviceId)
+        deleteBookmarksForDevice(deviceId)
+        deleteDeviceById(deviceId)
+    }
 
     @Query("SELECT COUNT(*) FROM devices")
     suspend fun getDevicesCount(): Int

@@ -91,8 +91,7 @@ fun DeviceGuidesScreen(
         guideState.deviceGuides
     } else {
         guideState.guides.filter { guide ->
-            guide.deviceId == selectedDevice.id ||
-                guide.category.equals(selectedDevice.category, ignoreCase = true)
+            guide.deviceId == selectedDevice.id
         }
     }
 
@@ -306,9 +305,9 @@ private fun DeviceGuideTaskCard(
     onViewTech: () -> Unit
 ) {
     val (difficultyLabel, difficultyColor) = when (guide.difficulty) {
-        "Fácil", "Bajo", "Básico" -> "Fácil" to SuccessGreen
-        "Difícil", "Alto", "Avanzado" -> "Difícil" to DangerRed
-        else -> "Media" to WarningAmber
+        "Fácil", "Bajo", "Básico" -> "Bajo" to SuccessGreen
+        "Difícil", "Alto", "Avanzado" -> "Alto" to DangerRed
+        else -> "Medio" to WarningAmber
     }
 
     Card(

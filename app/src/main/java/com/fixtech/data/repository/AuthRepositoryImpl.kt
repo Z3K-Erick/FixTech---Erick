@@ -8,6 +8,7 @@ import com.fixtech.data.local.entity.toDomain
 import com.fixtech.domain.model.Certificate
 import com.fixtech.domain.model.User
 import com.fixtech.domain.repository.AuthRepository
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,8 +39,8 @@ class AuthRepositoryImpl(
     private val _currentTech = MutableStateFlow(
         User(
             id = Constants.DEFAULT_TECH_ID,
-            fullName = "Erick",
-            email = "tecnico@fixtech.com",
+            fullName = Constants.DEFAULT_TECH_NAME,
+            email = "carlos@fixtech.com",
             role = "TECH",
             notificationsEnabled = true
         )
@@ -50,7 +51,6 @@ class AuthRepositoryImpl(
 
     init {
         repositoryScope.launch {
-            seedCertificatesIfNeeded()
             val savedUser = userDao.getUserById(Constants.DEFAULT_USER_ID)
             if (savedUser != null) {
                 _currentUser.value = savedUser.toDomain()
@@ -58,36 +58,17 @@ class AuthRepositoryImpl(
             val savedTech = userDao.getUserById(Constants.DEFAULT_TECH_ID)
             if (savedTech != null) {
                 _currentTech.value = savedTech.toDomain()
-            }
-        }
-    }
-
-    private suspend fun seedCertificatesIfNeeded() {
-        if (userDao.getCertificatesCount() == 0) {
-            val defaultCerts = listOf(
-                CertificateEntity(
-                    id = "cert_1",
-                    technicianId = Constants.DEFAULT_TECH_ID,
-                    title = "Mantenimiento de equipos de cómputo",
-                    institution = "Instituto TecnoSur",
-                    fileName = "mantenimiento.pdf"
-                ),
-                CertificateEntity(
-                    id = "cert_2",
-                    technicianId = Constants.DEFAULT_TECH_ID,
-                    title = "Certificación en Electrónica y Microsoldadura",
-                    institution = "Centro de Capacitación Técnica",
-                    fileName = "electronica_cert.pdf"
-                ),
-                CertificateEntity(
-                    id = "cert_3",
-                    technicianId = Constants.SECONDARY_TECH_ID,
-                    title = "Diagnóstico y Ensamble de Laptops y PC",
-                    institution = "Academia Nacional de Hardware",
-                    fileName = "diagnostico_hardware.pdf"
+            } else {
+                userDao.upsertUser(
+                    UserEntity(
+                        id = Constants.DEFAULT_TECH_ID,
+                        fullName = Constants.DEFAULT_TECH_NAME,
+                        email = "carlos@fixtech.com",
+                        role = "TECH",
+                        notificationsEnabled = true
+                    )
                 )
-            )
-            userDao.insertCertificates(defaultCerts)
+            }
         }
     }
 
@@ -97,6 +78,16 @@ class AuthRepositoryImpl(
         return userDao.observeAllCertificates().map { entities ->
             entities.map { it.toDomain() }.groupBy { it.technicianId }
         }
+    }
+
+    override fun observeCertificatesForTech(technicianId: String): Flow<List<Certificate>> {
+        return userDao.observeCertificatesForTech(technicianId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override fun observeCertificatesCountForTech(technicianId: String): Flow<Int> {
+        return userDao.observeCertificatesCountForTech(technicianId)
     }
 
     override suspend fun loginUser(email: String, password: String): User {
@@ -268,16 +259,31 @@ class AuthRepositoryImpl(
         technicianId: String,
         title: String,
         institution: String,
-        fileName: String
+        fileName: String,
+        localFilePath: String,
+        mimeType: String
     ) {
         val cert = CertificateEntity(
             id = "cert_${System.currentTimeMillis()}",
             technicianId = technicianId,
-            title = title,
-            institution = institution,
-            fileName = fileName
+            title = title.trim(),
+            institution = institution.trim(),
+            fileName = fileName.trim(),
+            localFilePath = localFilePath,
+            mimeType = mimeType
         )
         userDao.insertCertificate(cert)
+    }
+
+    override suspend fun deleteCertificate(certificateId: String) {
+        val existing = userDao.getCertificateById(certificateId)
+        if (existing != null && existing.localFilePath.isNotBlank()) {
+            try {
+                File(existing.localFilePath).takeIf { it.exists() }?.delete()
+            } catch (_: Exception) {
+            }
+        }
+        userDao.deleteCertificateById(certificateId)
     }
 
     override suspend fun logoutUser() {

@@ -24,6 +24,10 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    companion object {
+        const val DUPLICATE_DEVICE_ERROR = "Ya registraste un equipo con este modelo y tipo"
+    }
+
     init {
         observeRoomStreams()
     }
@@ -39,15 +43,13 @@ class HomeViewModel(
                     _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
                 }
                 .collect { exploreDevices ->
-                    if (exploreDevices.isNotEmpty()) {
-                        val bookmarkedIds = exploreDevices.filter { it.isBookmarked }.map { it.id }.toSet()
-                        _uiState.update { state ->
-                            state.copy(
-                                catalogDevices = exploreDevices,
-                                savedDeviceIds = bookmarkedIds,
-                                isLoading = false
-                            )
-                        }
+                    val bookmarkedIds = exploreDevices.filter { it.isBookmarked }.map { it.id }.toSet()
+                    _uiState.update { state ->
+                        state.copy(
+                            catalogDevices = exploreDevices,
+                            savedDeviceIds = bookmarkedIds,
+                            isLoading = false
+                        )
                     }
                 }
         }
@@ -80,9 +82,7 @@ class HomeViewModel(
                     _uiState.update { it.copy(errorMessage = e.message) }
                 }
                 .collect { certsByTech ->
-                    if (certsByTech.isNotEmpty()) {
-                        _uiState.update { it.copy(techCertificatesByAdmin = certsByTech) }
-                    }
+                    _uiState.update { it.copy(techCertificatesByAdmin = certsByTech) }
                 }
         }
     }
@@ -130,27 +130,131 @@ class HomeViewModel(
         }
     }
 
-    // Add Device handlers (Exclusivo para Técnico)
+    // =========================================================================
+    // Add / Edit / Delete Device handlers (Exclusivo para Técnico)
+    // =========================================================================
+
+    private fun normalizeDeviceType(type: String): String {
+        return if (type.contains("PC", ignoreCase = true)) "PC" else "Laptop"
+    }
+
+    private fun isDuplicateInCatalog(
+        model: String,
+        type: String,
+        editingDeviceId: String?,
+        catalog: List<Device>
+    ): Boolean {
+        val normModel = model.trim().lowercase().replace(Regex("\\s+"), " ")
+        if (normModel.isEmpty()) return false
+        val normType = normalizeDeviceType(type)
+        val techId = authRepository.currentTech.value.id.ifBlank { Constants.DEFAULT_TECH_ID }
+        return catalog.any { dev ->
+            dev.id != editingDeviceId &&
+                dev.technicianId == techId &&
+                dev.model.trim().lowercase().replace(Regex("\\s+"), " ") == normModel &&
+                normalizeDeviceType(dev.type) == normType
+        }
+    }
+
+    fun startNewDevice() {
+        _uiState.update {
+            it.copy(
+                editingDeviceId = null,
+                newDeviceType = "Laptop",
+                newDeviceBrand = "",
+                newDeviceModel = "",
+                newDeviceImageUri = "",
+                newDeviceImageFileName = "",
+                newDeviceRam = "16 GB",
+                newDeviceStorage = "512 GB SSD",
+                newDeviceProcessor = "Intel Core",
+                isBrandError = false,
+                isModelError = false,
+                isDuplicateModelError = false,
+                brandErrorText = null,
+                modelErrorText = null,
+                errorMessage = null
+            )
+        }
+    }
+
+    fun startEditDevice(device: Device) {
+        val normalizedType = if (device.type.contains("PC", ignoreCase = true)) "PC" else "Laptop"
+        _uiState.update {
+            it.copy(
+                editingDeviceId = device.id,
+                newDeviceType = normalizedType,
+                newDeviceBrand = device.name,
+                newDeviceModel = device.model,
+                newDeviceImageUri = device.imageUrl,
+                newDeviceImageFileName = if (device.imageUrl.isNotBlank()) "imagen_actual.jpg" else "",
+                newDeviceRam = device.ram,
+                newDeviceStorage = device.storage,
+                newDeviceProcessor = device.processor,
+                isBrandError = false,
+                isModelError = false,
+                isDuplicateModelError = false,
+                brandErrorText = null,
+                modelErrorText = null,
+                errorMessage = null
+            )
+        }
+    }
+
     fun onNewDeviceTypeSelected(type: String) {
-        _uiState.update { it.copy(newDeviceType = type) }
+        val normalized = normalizeDeviceType(type)
+        _uiState.update { current ->
+            val duplicate = isDuplicateInCatalog(
+                model = current.newDeviceModel,
+                type = normalized,
+                editingDeviceId = current.editingDeviceId,
+                catalog = current.catalogDevices
+            )
+            current.copy(
+                newDeviceType = normalized,
+                isDuplicateModelError = duplicate,
+                isModelError = duplicate || (current.isModelError && current.newDeviceModel.isBlank()),
+                modelErrorText = when {
+                    duplicate -> DUPLICATE_DEVICE_ERROR
+                    current.isModelError && current.newDeviceModel.isBlank() -> "Escribe el número de modelo."
+                    else -> null
+                },
+                errorMessage = if (duplicate) DUPLICATE_DEVICE_ERROR else null
+            )
+        }
     }
 
     fun onNewDeviceBrandChanged(brand: String) {
-        _uiState.update {
-            it.copy(
+        _uiState.update { current ->
+            val notBlank = brand.trim().isNotEmpty()
+            current.copy(
                 newDeviceBrand = brand,
-                isBrandError = if (brand.isNotBlank()) false else it.isBrandError,
-                errorMessage = if (brand.isNotBlank() && it.newDeviceModel.isNotBlank()) null else it.errorMessage
+                isBrandError = if (notBlank) false else current.isBrandError,
+                brandErrorText = if (notBlank) null else current.brandErrorText,
+                errorMessage = if (notBlank && !current.isModelError) null else current.errorMessage
             )
         }
     }
 
     fun onNewDeviceModelChanged(model: String) {
-        _uiState.update {
-            it.copy(
+        _uiState.update { current ->
+            val trimmed = model.trim()
+            val duplicate = isDuplicateInCatalog(
+                model = trimmed,
+                type = current.newDeviceType,
+                editingDeviceId = current.editingDeviceId,
+                catalog = current.catalogDevices
+            )
+            current.copy(
                 newDeviceModel = model,
-                isModelError = if (model.isNotBlank()) false else it.isModelError,
-                errorMessage = if (model.isNotBlank() && it.newDeviceBrand.isNotBlank()) null else it.errorMessage
+                isDuplicateModelError = duplicate,
+                isModelError = duplicate || (current.isModelError && trimmed.isEmpty()),
+                modelErrorText = when {
+                    duplicate -> DUPLICATE_DEVICE_ERROR
+                    current.isModelError && trimmed.isEmpty() -> "Escribe el número de modelo."
+                    else -> null
+                },
+                errorMessage = if (duplicate) DUPLICATE_DEVICE_ERROR else if (trimmed.isNotEmpty() && !current.isBrandError) null else current.errorMessage
             )
         }
     }
@@ -176,7 +280,7 @@ class HomeViewModel(
         _uiState.update { it.copy(newDeviceProcessor = processor) }
     }
 
-    fun saveNewDevice(): Boolean {
+    fun saveDevice(onSuccess: () -> Unit = {}) {
         val current = _uiState.value
         val brandText = current.newDeviceBrand.trim()
         val modelText = current.newDeviceModel.trim()
@@ -187,49 +291,120 @@ class HomeViewModel(
             _uiState.update {
                 it.copy(
                     isBrandError = brandEmpty,
+                    brandErrorText = if (brandEmpty) "Escribe el nombre del equipo." else null,
                     isModelError = modelEmpty,
-                    errorMessage = "Por favor, ingresa el nombre y el número de modelo del equipo."
+                    modelErrorText = if (modelEmpty) "Escribe el número de modelo." else null,
+                    errorMessage = "Falta información obligatoria: ingresa el nombre y el modelo del equipo."
                 )
             }
-            return false
+            return
         }
 
-        val normalizedCategory = if (current.newDeviceType.contains("PC", ignoreCase = true)) "PC" else "Laptop"
+        val normalizedCategory = normalizeDeviceType(current.newDeviceType)
+        val techId = authRepository.currentTech.value.id.ifBlank { Constants.DEFAULT_TECH_ID }
         val techName = authRepository.currentTech.value.fullName.ifBlank { Constants.DEFAULT_TECH_NAME }
 
-        val newDevice = Device(
-            id = "dev_${System.currentTimeMillis()}",
-            name = brandText,
+        // Validación en memoria + verificación en Room para duplicados (mismo técnico, mismo model y type)
+        val memoryDuplicate = isDuplicateInCatalog(
             model = modelText,
             type = normalizedCategory,
-            technicianId = Constants.DEFAULT_TECH_ID,
-            technicianName = techName,
-            imageUrl = current.newDeviceImageUri,
-            ram = current.newDeviceRam,
-            storage = current.newDeviceStorage,
-            processor = current.newDeviceProcessor
+            editingDeviceId = current.editingDeviceId,
+            catalog = current.catalogDevices
         )
+
+        if (memoryDuplicate) {
+            _uiState.update {
+                it.copy(
+                    isModelError = true,
+                    isDuplicateModelError = true,
+                    modelErrorText = DUPLICATE_DEVICE_ERROR,
+                    errorMessage = DUPLICATE_DEVICE_ERROR
+                )
+            }
+            return
+        }
 
         viewModelScope.launch {
             try {
-                deviceRepository.insertDevice(newDevice)
+                val roomDuplicate = deviceRepository.existsDuplicateDevice(
+                    technicianId = techId,
+                    model = modelText,
+                    type = normalizedCategory,
+                    excludeDeviceId = current.editingDeviceId
+                )
+                if (roomDuplicate) {
+                    _uiState.update {
+                        it.copy(
+                            isModelError = true,
+                            isDuplicateModelError = true,
+                            modelErrorText = DUPLICATE_DEVICE_ERROR,
+                            errorMessage = DUPLICATE_DEVICE_ERROR
+                        )
+                    }
+                    return@launch
+                }
+
+                val deviceId = current.editingDeviceId ?: "dev_${System.currentTimeMillis()}"
+                val deviceToSave = Device(
+                    id = deviceId,
+                    name = brandText,
+                    model = modelText,
+                    type = normalizedCategory,
+                    technicianId = techId,
+                    technicianName = techName,
+                    imageUrl = current.newDeviceImageUri,
+                    ram = current.newDeviceRam,
+                    storage = current.newDeviceStorage,
+                    processor = current.newDeviceProcessor
+                )
+
+                deviceRepository.insertDevice(deviceToSave)
+
+                _uiState.update { state ->
+                    state.copy(
+                        editingDeviceId = null,
+                        newDeviceBrand = "",
+                        newDeviceModel = "",
+                        newDeviceImageUri = "",
+                        newDeviceImageFileName = "",
+                        isBrandError = false,
+                        isModelError = false,
+                        isDuplicateModelError = false,
+                        brandErrorText = null,
+                        modelErrorText = null,
+                        errorMessage = null
+                    )
+                }
+                onSuccess()
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Error al guardar el dispositivo") }
             }
         }
+    }
 
-        _uiState.update { state ->
-            state.copy(
-                newDeviceBrand = "",
-                newDeviceModel = "",
-                newDeviceImageUri = "",
-                newDeviceImageFileName = "",
-                isBrandError = false,
-                isModelError = false,
-                errorMessage = null
-            )
+    fun deleteTechDevice(deviceId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                deviceRepository.deleteDeviceCascade(deviceId)
+                _uiState.update { state ->
+                    if (state.expandedTechDeviceId == deviceId) {
+                        state.copy(expandedTechDeviceId = null)
+                    } else {
+                        state
+                    }
+                }
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Error al eliminar el dispositivo") }
+            }
         }
-        return true
+    }
+
+    fun toggleExpandTechDevice(deviceId: String) {
+        _uiState.update { current ->
+            val nextId = if (current.expandedTechDeviceId == deviceId) null else deviceId
+            current.copy(expandedTechDeviceId = nextId)
+        }
     }
 
     fun removeUserDevice(deviceId: String) {
