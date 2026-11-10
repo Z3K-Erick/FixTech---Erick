@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 1. Carcasa exterior blanca de la pantalla de la laptop (Rounded Rect) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M33,28 L75,28 A6,6 0 0,1 81,34 L81,64 A6,6 0 0,1 75,70 L33,70 A6,6 0 0,1 27,64 L27,34 A6,6 0 0,1 33,28 Z" />
+
+    <!-- 2. Pantalla interior azul oscuro (#0B1528) -->
+    <path
+        android:fillColor="#0B1528"
+        android:pathData="M35,33 L73,33 A3,3 0 0,1 76,36 L76,62 A3,3 0 0,1 73,65 L35,65 A3,3 0 0,1 32,62 L32,36 A3,3 0 0,1 35,33 Z" />
+
+    <!-- 3. Círculo azul del botón Play (#3B82F6) centrado en (45, 49) con radio 10 -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M45,39 A10,10 0 1,1 45,59 A10,10 0 1,1 45,39 Z" />
+
+    <!-- 4. Triángulo blanco de Play dentro del círculo -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42.5,44.5 L50.5,49 L42.5,53.5 Z" />
+
+    <!-- 5. Destornillador inclinado (Mango blanco, punta blanca y ranuras azules) -->
+    <group
+        android:pivotX="63"
+        android:pivotY="49"
+        android:rotation="35">
+        <!-- Vástago / Punta metálica blanca -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M62,48 L64,48 L64,59 L63,62 L62,59 Z" />
+        <!-- Mango blanco redondeado -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M63,36 A4.5,4.5 0 0,1 67.5,40.5 L67.5,47 A2.5,2.5 0 0,1 65,49.5 L61,49.5 A2.5,2.5 0 0,1 58.5,47 L58.5,40.5 A4.5,4.5 0 0,1 63,36 Z" />
+        <!-- Detalles azules del mango -->
+        <path
+            android:fillColor="#3B82F6"
+            android:pathData="M60.5,40.5 L65.5,40.5 A1,1 0 0,1 65.5,42.5 L60.5,42.5 A1,1 0 0,1 60.5,40.5 Z" />
+        <path
+            android:fillColor="#3B82F6"
+            android:pathData="M60.5,44.5 L65.5,44.5 A1,1 0 0,1 65.5,46.5 L60.5,46.5 A1,1 0 0,1 60.5,44.5 Z" />
+    </group>
+
+    <!-- 6. Base / Teclado inferior blanco de la laptop -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26.5,73.5 L81.5,73.5 A2.5,2.5 0 0,1 84,76 L84,76.5 A2.5,2.5 0 0,1 81.5,79 L26.5,79 A2.5,2.5 0 0,1 24,76.5 L24,76 A2.5,2.5 0 0,1 26.5,73.5 Z" />
+
+    <!-- 7. Muesca central azul claro (#93C5FD) en la base del teclado -->
+    <path
+        android:fillColor="#93C5FD"
+        android:pathData="M49,73.5 L59,73.5 A1,1 0 0,1 59,75.5 L49,75.5 A1,1 0 0,1 49,73.5 Z" />
+</vector>
